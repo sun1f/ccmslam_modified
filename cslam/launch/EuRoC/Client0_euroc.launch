@@ -2,7 +2,7 @@
 <launch>
 
   <arg name="dist" default="0"/>
-  <arg name="cam" default="$(find ccmslam)/conf/d435i.yaml"/>
+  <arg name="cam" default="$(find ccmslam)/conf/vi_euroc.yaml"/>
 
   <group ns="ccmslam">
 
@@ -16,7 +16,7 @@
       <param name="~FrameId" type="string" value="odomC0" />
       <param name="~ClientId" type="int" value="0" />
 
-      <param name="~TopicNameCamSub" type="string" value="/camera/color/image_raw" />
+      <param name="~TopicNameCamSub" type="string" value="/cam0/image_raw" />
 
       <param name="~MapInTopicName" type="string" value="MapOutServer0" unless="$(arg dist)" />
       <param name="~MapInTopicName" type="string" value="MapOutServer0Disturbed" if="$(arg dist)" />
