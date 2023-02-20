@@ -37,8 +37,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    ros::NodeHandle Nh;
-    ros::NodeHandle NhPrivate("~");
+    ros::NodeHandle Nh;             // Nh在更上一级命名空间，好像只负责发布地图保存服务的广播
+    ros::NodeHandle NhPrivate("~"); // NhPrivate在ccmslam命名空间下，主要用它来发布和订阅话题
 
     boost::shared_ptr<cslam::ServerSystem> pSSys{new cslam::ServerSystem(Nh, NhPrivate, argv[1])};
     pSSys->InitializeClients();

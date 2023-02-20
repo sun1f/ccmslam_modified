@@ -34,7 +34,7 @@ namespace cslam
 
         mNhPrivate.param("NumOfClients", mNumOfClients, 0);
 
-        mServiceSavemap = mNh.advertiseService("ccmslam_savemap", &ServerSystem::CallbackSaveMap, this);
+        mServiceSavemap = mNh.advertiseService("ccmslam_savemap", &ServerSystem::CallbackSaveMap, this); // 地图保存服务
 
         if (mNumOfClients < 1)
         {
