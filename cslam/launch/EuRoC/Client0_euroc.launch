@@ -18,6 +18,7 @@
 
       <param name="~TopicNameCamSub" type="string" value="/cam0/image_raw" />
 
+      <!-- client和server双向数据传输 -->
       <param name="~MapInTopicName" type="string" value="MapOutServer0" unless="$(arg dist)" />
       <param name="~MapInTopicName" type="string" value="MapOutServer0Disturbed" if="$(arg dist)" />
 

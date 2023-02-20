@@ -60,7 +60,7 @@ namespace cslam
         {
             SysType = "Client";
 
-            // Subscriber
+            // Subscriber client和server双向发布和订阅，话题有写在server.launch和Client.launch文件中
             mNhPrivate.param("MapInTopicName", MapInTopicName, std::string("nospec"));
             mSubMap = mNh.subscribe<ccmslam_msgs::Map>(MapInTopicName, params::comm::client::miSubMapBufferSize, boost::bind(&Communicator::MapCbClient, this, _1));
 
