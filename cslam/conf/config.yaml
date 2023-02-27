@@ -155,12 +155,12 @@ Viewer.MarkerSphereDiameter: 0.05
 Viewer.CamSize: 0.02
 Viewer.CamLineSize: 0.01
 
-Viewer.ColorR0: 1.0
-Viewer.ColorG0: 1.0
+Viewer.ColorR0: 0.0
+Viewer.ColorG0: 0.0
 Viewer.ColorB0: 1.0
 
 Viewer.ColorR1: 0.0
-Viewer.ColorG1: 0.8
+Viewer.ColorG1: 1.0
 Viewer.ColorB1: 0.0
 
 Viewer.ColorR2: 0.0
