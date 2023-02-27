@@ -50,9 +50,15 @@ namespace cslam
             std::string TopicNameCamSub;
 
             mNhPrivate.param("TopicNameCamSub", TopicNameCamSub, string("nospec"));
-            mSubCam = mNh.subscribe<sensor_msgs::Image>(TopicNameCamSub, 10, boost::bind(&ClientHandler::CamImgCb, this, _1));
+            mpIT.reset(new image_transport::ImageTransport(mNhPrivate));
+            mpSUB.reset(new image_transport::Subscriber(mpIT.get()->subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, image_transport::TransportHints("compressed"))));
+            // mit(mNhPrivate);
+            // mitSub = mpIT.get()->subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, image_transport::TransportHints("compressed"));
+            // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, boost::bind(&ClientHandler::CamImgCb, this, _1));
+            // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, ClientHandler::CamImgCb);
 
-            cout << "Camera Input topic: " << TopicNameCamSub << endl;
+            cout
+                << "Camera Input topic: " << TopicNameCamSub << endl;
         }
     }
 #ifdef LOGGING
@@ -276,13 +282,16 @@ namespace cslam
         mpMapping->SetMapMatcher(mpMapMatcher);
     }
 
-    void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsg)
+    // void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsg) 需要订阅压缩的图像话题
+    void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr &pMsg)
     {
         // Copy the ros image message to cv::Mat.
-        cv_bridge::CvImageConstPtr cv_ptr;
+        // cv_bridge::CvImageConstPtr cv_ptr;
+        cv_bridge::CvImagePtr cv_ptr;
 
         try
         {
+            // cv_ptr = cv_bridge::toCvCopy(pMsg, sensor_msgs::image_encodings::BGR8);
             cv_ptr = cv_bridge::toCvShare(pMsg);
         }
         catch (cv_bridge::Exception &e)

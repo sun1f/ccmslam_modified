@@ -6,62 +6,76 @@ set(PERFORMANCE_MODE TRUE)
 set(DEBUG_MODE 0)
 
 IF(G2O_U14)
-MESSAGE( STATUS "U14 Configuration")
-add_definitions(-DU14_G2O)
+  MESSAGE(STATUS "U14 Configuration")
+  add_definitions(-DU14_G2O)
 ENDIF()
 
 # This code was not tested with ROS version vefore "indigo"
 if($ENV{ROS_DISTRO} MATCHES "indigo")
-set(ROS_VERSION_INDIGO TRUE)
+  set(ROS_VERSION_INDIGO TRUE)
 elseif($ENV{ROS_DISTRO} MATCHES "noetic")
-set(ROS_VERSION_INDIGO FALSE)
+  set(ROS_VERSION_INDIGO FALSE)
 endif()
 
 set(CMAKE_CXX_FLAGS "-std=c++1y -pthread -pipe ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "-Wno-reorder -Wno-sign-compare -Wno-unused-function -Wno-strict-aliasing ${CMAKE_CXX_FLAGS}")
+
 if(NOT ${ROS_VERSION_INDIGO})
-set(CMAKE_CXX_FLAGS "-Wno-unused-variable ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-Wno-unused-variable ${CMAKE_CXX_FLAGS}")
 endif()
+
 set(CMAKE_CXX_FLAGS "-Werror=parentheses -Werror=unused-value ${CMAKE_CXX_FLAGS}")
+
 if(${ROS_VERSION_INDIGO})
-set(CMAKE_CXX_FLAGS "-Werror=unused-variable ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-Werror=unused-variable ${CMAKE_CXX_FLAGS}")
 endif()
 
 if(${PERFORMANCE_MODE})
-    set(CMAKE_CXX_FLAGS "-Wfatal-errors ${CMAKE_CXX_FLAGS}")
-    set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-Wfatal-errors ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
 endif()
 
 if(${DEBUG_MODE})
-set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
 endif()
 
-MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS} )
+MESSAGE(STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 
-#ROS_BUILD_TYPE: Set the build type. Options are (default: RelWithDebInfo):
-#Debug : w/ debug symbols, w/o optimization
-#Release : w/o debug symbols, w/ optimization
-#RelWithDebInfo : w/ debug symbols, w/ optimization
-#RelWithAsserts : w/o debug symbols, w/ optimization, w/ assertions (i.e., w/o -DNDEBUG). New in ros 1.1.
-#MinSizeRel : w/o debug symbols, w/ optimization, stripped binaries
+# ROS_BUILD_TYPE: Set the build type. Options are (default: RelWithDebInfo):
+# Debug : w/ debug symbols, w/o optimization
+# Release : w/o debug symbols, w/ optimization
+# RelWithDebInfo : w/ debug symbols, w/ optimization
+# RelWithAsserts : w/o debug symbols, w/ optimization, w/ assertions (i.e., w/o -DNDEBUG). New in ros 1.1.
+# MinSizeRel : w/o debug symbols, w/ optimization, stripped binaries
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
-#set(CMAKE_BUILD_TYPE Debug)
+
+# set(CMAKE_BUILD_TYPE Debug)
 if(${PERFORMANCE_MODE})
-    set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
-MESSAGE( STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE} )
+MESSAGE(STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 if(NOT ${ROS_VERSION_INDIGO})
-    find_package(OpenCV 3.2.0 REQUIRED)
+  find_package(OpenCV 3.2.0 REQUIRED)
 endif()
 
-find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge tf ccmslam_msgs pcl_ros tf_conversions image_transport std_msgs message_generation)
-#find_package(cmake_modules REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+  message_generation
+  ccmslam_msgs
+  cv_bridge
+  image_transport
+  tf
+  tf_conversions
+  pcl_ros
+)
 
+# find_package(cmake_modules REQUIRED)
 add_service_files(
   FILES
   ServiceSaveMap.srv
@@ -71,10 +85,11 @@ add_service_files(
 generate_messages(DEPENDENCIES std_msgs)
 
 if(NOT ${ROS_VERSION_INDIGO})
-find_package(Eigen3 REQUIRED 3.0)
+  find_package(Eigen3 REQUIRED 3.0)
 else()
-find_package(Eigen REQUIRED 3.0)
+  find_package(Eigen REQUIRED 3.0)
 endif()
+
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 find_package(PCL 1.3 REQUIRED)
@@ -86,9 +101,9 @@ set(THIRDPARTY_LIBS
 )
 
 catkin_package(
-   INCLUDE_DIRS include
-   CATKIN_DEPENDS ccmslam_msgs
-   LIBRARIES ccmslam_lib
+  INCLUDE_DIRS include
+  CATKIN_DEPENDS ccmslam_msgs
+  LIBRARIES ccmslam_lib
 )
 
 include_directories(
@@ -107,10 +122,11 @@ set(EXTERNAL_LIBRARIES
   ${EIGEN3_LIBS}
 )
 
-ADD_SUBDIRECTORY( include/cslam )
+ADD_SUBDIRECTORY(include/cslam)
 
 add_library(ccmslam_lib
-#cpp files
+
+  # cpp files
   src/config.cpp
   src/CentralControl.cpp
   src/ClientHandler.cpp
@@ -134,7 +150,7 @@ add_library(ccmslam_lib
   src/Tracking.cpp
   src/Viewer.cpp
 
-#header
+  # header
   include/cslam/config.h
   include/cslam/CentralControl.h
   include/cslam/ClientHandler.h
@@ -166,26 +182,28 @@ add_dependencies(ccmslam_lib ccmslam_msgs_generate_messages_cpp)
 target_link_libraries(ccmslam_lib ${EXTERNAL_LIBRARIES} ${THIRDPARTY_LIBS})
 
 add_executable(ccmslamClientNode
-#node
+
+  # node
   src/client/ClientNode.cpp
 
-#cpp files
+  # cpp files
   src/client/ClientSystem.cpp
 
-#header
+  # header
   include/cslam/client/ClientSystem.h
 )
 add_dependencies(ccmslamClientNode ccmslam_lib)
 target_link_libraries(ccmslamClientNode ${EXTERNAL_LIBRARIES} ccmslam_lib)
 
 add_executable(ccmslamServerNode
-#node
+
+  # node
   src/server/ServerNode.cpp
 
-#cpp files
+  # cpp files
   src/server/ServerSystem.cpp
 
-#header
+  # header
   include/cslam/server/ServerSystem.h
 )
 add_dependencies(ccmslamServerNode ccmslam_lib)

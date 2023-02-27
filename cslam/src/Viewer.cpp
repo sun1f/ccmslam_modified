@@ -31,7 +31,7 @@ namespace cslam
         : mpMap(pMap), mpCC(pCC), mbDrawFrame(false)
     {
         mState = Tracking::SYSTEM_NOT_READY;
-        mIm = cv::Mat(480, 640, CV_8UC3, cv::Scalar(0, 0, 0));
+        mIm = cv::Mat(480, 640, CV_8UC3, cv::Scalar(0, 0, 0)); // 创建一个480*640，3通道，每个通道（U表示unsigned int）用8位bit表示，每个通道初始值为0
 
         std::stringstream *ss;
 
