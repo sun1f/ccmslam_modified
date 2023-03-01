@@ -30,6 +30,7 @@ namespace cslam
     ClientHandler::ClientHandler(ros::NodeHandle Nh, ros::NodeHandle NhPrivate, vocptr pVoc, dbptr pDB, mapptr pMap, size_t ClientId, uidptr pUID, eSystemState SysState, const string &strCamFile, viewptr pViewer, bool bLoadMap)
         : mpVoc(pVoc), mpKFDB(pDB), mpMap(pMap),
           mNh(Nh), mNhPrivate(NhPrivate),
+          mit(NhPrivate), // image_transport::ImageTransport没有默认无参构造函数，必须在初始化列表中将mit初始化
           mClientId(ClientId), mpUID(pUID), mSysState(SysState),
           mstrCamFile(strCamFile),
           mpViewer(pViewer), mbReset(false),
@@ -50,15 +51,15 @@ namespace cslam
             std::string TopicNameCamSub;
 
             mNhPrivate.param("TopicNameCamSub", TopicNameCamSub, string("nospec"));
-            mpIT.reset(new image_transport::ImageTransport(mNhPrivate));
-            mpSUB.reset(new image_transport::Subscriber(mpIT.get()->subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, image_transport::TransportHints("compressed"))));
+            // mpIT.reset(new image_transport::ImageTransport(mNhPrivate));
+            // mpSUB.reset(new image_transport::Subscriber(mpIT.get()->subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, image_transport::TransportHints("compressed"))));
             // mit(mNhPrivate);
+            mitSub = mit.subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, this, image_transport::TransportHints("compressed")); // 使用了第二个版本的subscribe接口：成员函数 + 裸指针
             // mitSub = mpIT.get()->subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, image_transport::TransportHints("compressed"));
             // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, boost::bind(&ClientHandler::CamImgCb, this, _1));
             // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, ClientHandler::CamImgCb);
 
-            cout
-                << "Camera Input topic: " << TopicNameCamSub << endl;
+            cout << "Camera Input topic: " << TopicNameCamSub << endl;
         }
     }
 #ifdef LOGGING
@@ -283,7 +284,7 @@ namespace cslam
     }
 
     // void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsg) 需要订阅压缩的图像话题
-    void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr &pMsg)
+    void ClientHandler::CamImgCb(const sensor_msgs::ImageConstPtr &pMsg)
     {
         // Copy the ros image message to cv::Mat.
         // cv_bridge::CvImageConstPtr cv_ptr;
@@ -291,8 +292,8 @@ namespace cslam
 
         try
         {
-            // cv_ptr = cv_bridge::toCvCopy(pMsg, sensor_msgs::image_encodings::BGR8);
-            cv_ptr = cv_bridge::toCvShare(pMsg);
+            cv_ptr = cv_bridge::toCvCopy(pMsg, sensor_msgs::image_encodings::BGR8);
+            // cv_ptr = cv_bridge::toCvShare(pMsg);
         }
         catch (cv_bridge::Exception &e)
         {

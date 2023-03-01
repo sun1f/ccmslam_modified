@@ -110,7 +110,7 @@ namespace cslam
                 void ClearCovGraph(size_t MapId);
 
                 //---Agent side---
-                void CamImgCb(sensor_msgs::ImageConstPtr &pMsg);
+                void CamImgCb(const sensor_msgs::ImageConstPtr &pMsg);
                 void Reset();
 
                 //---Map Save/Load---
@@ -153,11 +153,11 @@ namespace cslam
                 ros::NodeHandle mNhPrivate;
                 // ros::Subscriber mSubCam;
 
-                /* image_transport::ImageTransport mit;
-                image_transport::Subscriber mitSub; */
+                image_transport::ImageTransport mit;
+                image_transport::Subscriber mitSub;
 
-                boost::shared_ptr<image_transport::ImageTransport> mpIT;
-                boost::shared_ptr<image_transport::Subscriber> mpSUB;
+                /* boost::shared_ptr<image_transport::ImageTransport> mpIT;
+                boost::shared_ptr<image_transport::Subscriber> mpSUB; */
 
                 // threads
                 threadptr mptMapping;
