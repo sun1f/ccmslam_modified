@@ -428,7 +428,7 @@ namespace cslam
 
         // Set median depth to 1
         float medianDepth = pKFini->ComputeSceneMedianDepth(2);
-        float invMedianDepth = 1.0f / medianDepth;
+        float invMedianDepth = 100.0f / medianDepth; // 改这个1.0f能变尺度吗
 
         if (medianDepth < 0 || pKFcur->TrackedMapPoints(1) < 100)
         {

@@ -13,7 +13,7 @@
     <!-- args参数顺序：x y z yaw pitch roll frame_id child_frame_id period_in_ms，此处使用这种欧拉角表示，yaw pitch roll分别对应Z,Y,X轴的旋转-->
     <!--  也可以是：x y z qx qy qz qw frame_id child_frame_id  period_in_ms-->
     <!-- 最后一个参数是发布频率，单位毫秒，通常取100，100ms即0.1s，也就是10Hz -->
-    
+
     <node pkg="tf" type="static_transform_publisher" name="linkS0_broadcaster" args="0 0 5 -1.571 0 -2 world odomS0 100" />
     <node pkg="tf" type="static_transform_publisher" name="linkS1_broadcaster" args="0 0 5 -1.571 0 -2 world odomS1 100" />
     <!-- <node pkg="tf" type="static_transform_publisher" name="linkS2_broadcaster" args="0 0 5 -1.571 0 -2 world odomS2 100" />
@@ -42,19 +42,21 @@
       <param name="~MapInTopicName1" type="string" value="MapOutClient1" unless="$(arg dist)" />
       <param name="~MapInTopicName1" type="string" value="MapOutClient1Disturbed" if="$(arg dist)" />
 
-      <!-- Client 2 -->
-
-      <!-- <param name="FrameId2" type="string" value="odomS2" />
-  <param name="~MapInTopicName2" type="string" value="MapOutClient2" unless="$(arg dist)" />
-  <param name="~MapInTopicName2" type="string" value="MapOutClient2Disturbed" if="$(arg dist)" /> -->
-
-      <!-- Client 3 -->
-
-      <!-- <param name="FrameId3" type="string" value="odomS3" />
-  <param name="~MapInTopicName3" type="string" value="MapOutClient3" unless="$(arg dist)" />
-  <param name="~MapInTopicName3" type="string" value="MapOutClient3Disturbed" if="$(arg dist)" /> -->
 
     </node>
 
   </group>
+
+  <!-- 载入手绘二维栅格地图 -->
+  <group ns="mymap">
+    <!-- 设置地图的配置文件 -->
+    <arg name="map" default="hallmap.yaml" />
+    <!-- 运行地图服务器，并且加载设置的地图-->
+    <node name="map_server" pkg="map_server" type="map_server" args="/home/sun/ccmslam_ws/src/ccm_slam/cslam/map/$(arg map)" />
+    <node pkg="tf" type="static_transform_publisher" name="linkM0_broadcaster" args="0 0 0 -1.571 0 0 world map 100" />
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ccmslam)/conf/rviz/ccmslam.rviz" required="true" />
+
+  </group>
+
 </launch>

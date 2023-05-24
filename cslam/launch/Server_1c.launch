@@ -13,8 +13,8 @@
     <!-- args参数顺序：x y z yaw pitch roll frame_id child_frame_id period_in_ms，此处使用这种欧拉角表示，yaw pitch roll分别对应Z,Y,X轴的旋转-->
     <!--  也可以是：x y z qx qy qz qw frame_id child_frame_id  period_in_ms-->
     <!-- 最后一个参数是发布频率，单位毫秒，通常取100，100ms即0.1s，也就是10Hz -->
-    
-    <node pkg="tf" type="static_transform_publisher" name="linkS0_broadcaster" args="0 0 5 -1.571 0 -2 world odomS0 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="linkS0_broadcaster" args="0 0 5 -1.571 0 -2 world odomS0 100" output="screen" />
     <!-- <node pkg="tf" type="static_transform_publisher" name="linkS1_broadcaster" args="0 0 5 -1.571 0 -2 world odomS1 100" /> -->
     <!-- <node pkg="tf" type="static_transform_publisher" name="linkS2_broadcaster" args="0 0 5 -1.571 0 -2 world odomS2 100" />
     <node pkg="tf" type="static_transform_publisher" name="linkS3_broadcaster" args="0 0 5 -1.571 0 -2 world odomS3 100" /> -->

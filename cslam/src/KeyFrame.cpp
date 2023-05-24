@@ -1229,8 +1229,8 @@ namespace cslam
 
         vector<float> vDepths;
         vDepths.reserve(N);
-        cv::Mat Rcw2 = Tcw_.row(2).colRange(0, 3);
-        Rcw2 = Rcw2.t();
+        cv::Mat Rcw2 = Tcw_.row(2).colRange(0, 3); // 取绕z轴方向的旋转
+        Rcw2 = Rcw2.t();                           //.t()是转置操作
         float zcw = Tcw_.at<float>(2, 3);
         for (int i = 0; i < N; i++)
         {
@@ -1240,7 +1240,7 @@ namespace cslam
                 if (pMP->IsEmpty())
                     continue;
                 cv::Mat x3Dw = pMP->GetWorldPos();
-                float z = Rcw2.dot(x3Dw) + zcw;
+                float z = Rcw2.dot(x3Dw) + zcw; // dot()是点乘
                 vDepths.push_back(z);
             }
         }

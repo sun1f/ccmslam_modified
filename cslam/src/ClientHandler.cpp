@@ -30,7 +30,7 @@ namespace cslam
     ClientHandler::ClientHandler(ros::NodeHandle Nh, ros::NodeHandle NhPrivate, vocptr pVoc, dbptr pDB, mapptr pMap, size_t ClientId, uidptr pUID, eSystemState SysState, const string &strCamFile, viewptr pViewer, bool bLoadMap)
         : mpVoc(pVoc), mpKFDB(pDB), mpMap(pMap),
           mNh(Nh), mNhPrivate(NhPrivate),
-          mit(NhPrivate), // image_transport::ImageTransport没有默认无参构造函数，必须在初始化列表中将mit初始化
+          mit(Nh), // image_transport::ImageTransport没有默认无参构造函数，必须在初始化列表中将mit初始化
           mClientId(ClientId), mpUID(pUID), mSysState(SysState),
           mstrCamFile(strCamFile),
           mpViewer(pViewer), mbReset(false),

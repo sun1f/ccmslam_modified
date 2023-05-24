@@ -7,7 +7,7 @@
 
   <group ns="ccmslam">
 
-    <node pkg="tf" type="static_transform_publisher" name="linkC2_broadcaster" args="100 100 5 -1.571 0 -2 world odomC2 100" />
+    <node pkg="tf" type="static_transform_publisher" name="linkC2_broadcaster" args="100 100 5 -1.571 0 -2 world odomC2 100" output="screen" />
 
     <node pkg="ccmslam" type="ccmslamClientNode" name="ccmslamClientNode2" args="$(find ccmslam)/conf/ORBvoc.txt $(arg cam)" output="screen">
 
