@@ -11,7 +11,7 @@ Panels:
         - /MarkerS01/Namespaces1
         - /MarkerS11/Namespaces1
       Splitter Ratio: 0.30530163645744324
-    Tree Height: 751
+    Tree Height: 441
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -61,19 +61,7 @@ Visualization Manager:
       Frame Timeout: 1500
       Frames:
         All Enabled: true
-        camera_color_frame:
-          Value: true
-        camera_color_optical_frame:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_depth_optical_frame:
-          Value: true
-        camera_link:
-          Value: true
         map:
-          Value: true
-        odomC0:
           Value: true
         odomS0:
           Value: true
@@ -90,8 +78,6 @@ Visualization Manager:
       Tree:
         world:
           map:
-            {}
-          odomC0:
             {}
           odomS0:
             {}
@@ -317,7 +303,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 456.1510314941406
+      Distance: 455.2851257324219
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -325,9 +311,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -7.104403972625732
-        Y: -1.2282403707504272
-        Z: -371.3988342285156
+        X: 52.230934143066406
+        Y: -18.379629135131836
+        Z: -371.41552734375
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

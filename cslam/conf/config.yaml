@@ -146,21 +146,21 @@ Viewer.CovGraphMinFeats: 100
 Viewer.ScaleFactor: 20.0
 
 # Line Diameters
-Viewer.TrajMarkerSize: 0.25
+Viewer.TrajMarkerSize: 0.1
 Viewer.CovGraphMarkerSize: 0.02
-Viewer.LoopMarkerSize: 0.2
+Viewer.LoopMarkerSize: 0.1
 Viewer.MarkerSphereDiameter: 0.05
 
 # Paramters for KF frusta
 Viewer.CamSize: 0.02
 Viewer.CamLineSize: 0.01
 
-Viewer.ColorR0: 1.0
-Viewer.ColorG0: 1.0
-Viewer.ColorB0: 1.0
+Viewer.ColorR0: 0.0
+Viewer.ColorG0: 0.8
+Viewer.ColorB0: 0.0
 
-Viewer.ColorR1: 0.0
-Viewer.ColorG1: 0.8
+Viewer.ColorR1: 1.0
+Viewer.ColorG1: 1.0
 Viewer.ColorB1: 0.0
 
 Viewer.ColorR2: 0.0
