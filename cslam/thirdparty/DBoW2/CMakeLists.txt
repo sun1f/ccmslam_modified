@@ -41,15 +41,7 @@ find_package(OpenCV 3.3.0 REQUIRED)
 elseif(${USE_THIRDPARTY_OPENCV2})
 set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/../opencv-2.4.13/build)
 set(OpenCV_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../opencv-2.4.13/build/include)
-find_package(OpenCV 2.4.13
-
-
-
-
-
-
-
- REQUIRED)
+find_package(OpenCV 2.4.13 REQUIRED)
 else()
 find_package(OpenCV REQUIRED)
 endif()

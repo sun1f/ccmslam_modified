@@ -91,7 +91,7 @@ namespace cslam
 
         if (params::stats::mbWriteKFsToFile)
         {
-            for (int it = 0; it < 4; ++it)
+            for (int it = 0; it < 2; ++it)
             {
                 std::stringstream ss;
                 ss << params::stats::msOutputDir << "KF_GBA_" << it << ".csv";

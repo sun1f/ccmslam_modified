@@ -138,7 +138,7 @@ Viewer.Active: 1
 Viewer.ShowCovGraph: 1
 Viewer.ShowMapPoints: 1
 Viewer.ShowTraj: 1
-Viewer.ShowKFs: 0
+Viewer.ShowKFs: 1
 
 # Display only edges with weight >= CovGraphMinFeats (only used for visualization)
 Viewer.CovGraphMinFeats: 100

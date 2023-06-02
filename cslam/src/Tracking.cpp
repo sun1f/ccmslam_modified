@@ -428,7 +428,7 @@ namespace cslam
 
         // Set median depth to 1
         float medianDepth = pKFini->ComputeSceneMedianDepth(2);
-        float invMedianDepth = 0.1f / medianDepth; // 改这个1.0f能变尺度吗
+        float invMedianDepth = 1.0f / medianDepth; // 尺度因子s
 
         if (medianDepth < 0 || pKFcur->TrackedMapPoints(1) < 100)
         {
@@ -440,7 +440,7 @@ namespace cslam
 
         // Scale initial baseline
         cv::Mat Tc2w = pKFcur->GetPose();
-        Tc2w.col(3).rowRange(0, 3) = Tc2w.col(3).rowRange(0, 3) * invMedianDepth;
+        Tc2w.col(3).rowRange(0, 3) = Tc2w.col(3).rowRange(0, 3) * invMedianDepth; // t = s * t
         pKFcur->SetPose(Tc2w, false);
 
         // Scale points
