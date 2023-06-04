@@ -2,7 +2,7 @@
 <package>
   <name>ccmslam_msgs</name>
   <version>1.0.0</version>
-  <description>Message(s) for V4RL CCM-SLAM package</description>
+  <description>Message(s) for CCRGBD-SLAM package</description>
 
   <maintainer email="collaborative.slam@gmail.com">collaborativeslam</maintainer>
 
