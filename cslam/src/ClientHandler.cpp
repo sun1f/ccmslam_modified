@@ -26,6 +26,15 @@
 
 namespace cslam
 {
+    class ImageGrabber
+    {
+    public:
+        ImageGrabber(ClientSystem *pSLAM) : mpSLAM(pSLAM) {}
+
+        void GrabRGBD(const sensor_msgs::ImageConstPtr &msgRGB, const sensor_msgs::ImageConstPtr &msgD);
+
+        ClientSystem *mpSLAM;
+    };
 
     ClientHandler::ClientHandler(ros::NodeHandle Nh, ros::NodeHandle NhPrivate, vocptr pVoc, dbptr pDB, mapptr pMap, size_t ClientId, uidptr pUID, eSystemState SysState, const string &strCamFile, viewptr pViewer, bool bLoadMap)
         : mpVoc(pVoc), mpKFDB(pDB), mpMap(pMap),
@@ -48,16 +57,21 @@ namespace cslam
 
         if (mSysState == eSystemState::CLIENT)
         {
-            std::string TopicNameCamSub;
+            std::string TopicNameCamSub_RGB;
 
-            mNhPrivate.param("TopicNameCamSub", TopicNameCamSub, string("nospec"));
-            // mpIT.reset(new image_transport::ImageTransport(mNhPrivate));
-            // mpSUB.reset(new image_transport::Subscriber(mpIT.get()->subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, image_transport::TransportHints("compressed"))));
-            // mit(mNhPrivate);
-            mitSub = mit.subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, this, image_transport::TransportHints("compressed")); // 使用了第二个版本的subscribe接口：成员函数 + 裸指针
-            // mitSub = mpIT.get()->subscribe(TopicNameCamSub, 10, &ClientHandler::CamImgCb, image_transport::TransportHints("compressed"));
+            mNhPrivate.param("TopicNameCamSub_RGB", TopicNameCamSub_RGB, string("nospec"));
+            mNhPrivate.param("TopicNameCamSub_D", TopicNameCamSub_D, string("nospec"));
+
+            // mitSub = mit.subscribe(TopicNameCamSub_RGB, 10, &ClientHandler::CamImgCb, this, image_transport::TransportHints("compressed")); // 使用了第二个版本的subscribe接口：成员函数 + 裸指针
+
             // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, boost::bind(&ClientHandler::CamImgCb, this, _1));
             // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, ClientHandler::CamImgCb);
+
+            message_filters::Subscriber<sensor_msgs::Image> rgb_sub(mNh, TopicNameCamSub_RGB, 10);
+            message_filters::Subscriber<sensor_msgs::Image> depth_sub(mNh, TopicNameCamSub_D, 10);
+            typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
+            message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub);
+            sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD, &igb, _1, _2));
 
             cout << "Camera Input topic: " << TopicNameCamSub << endl;
         }
@@ -284,15 +298,26 @@ namespace cslam
     }
 
     // void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsg) 需要订阅压缩的图像话题
-    void ClientHandler::CamImgCb(const sensor_msgs::ImageConstPtr &pMsg)
+    void ClientHandler::CamImgCb(const sensor_msgs::ImageConstPtr &pMsgRGB, const sensor_msgs::ImageConstPtr &pMsgD)
     {
         // Copy the ros image message to cv::Mat.
         // cv_bridge::CvImageConstPtr cv_ptr;
-        cv_bridge::CvImagePtr cv_ptr;
+        cv_bridge::CvImagePtr cv_ptrRGB;
 
         try
         {
-            cv_ptr = cv_bridge::toCvCopy(pMsg, sensor_msgs::image_encodings::BGR8);
+            cv_ptrRGB = cv_bridge::toCvCopy(pMsgRGB, sensor_msgs::image_encodings::BGR8);
+            // cv_ptr = cv_bridge::toCvShare(pMsg);
+        }
+        catch (cv_bridge::Exception &e)
+        {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
+        cv_bridge::CvImagePtr cv_ptrD;
+        try
+        {
+            cv_ptrD = cv_bridge::toCvCopy(pMsgD);
             // cv_ptr = cv_bridge::toCvShare(pMsg);
         }
         catch (cv_bridge::Exception &e)
@@ -311,7 +336,7 @@ namespace cslam
             }
         }
 
-        mpTracking->GrabImageMonocular(cv_ptr->image, cv_ptr->header.stamp.toSec());
+        mpTracking->GrabImageRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
     }
 
     void ClientHandler::LoadMap(const std::string &path_name)
@@ -378,6 +403,78 @@ namespace cslam
     void ClientHandler::ClearCovGraph(size_t MapId)
     {
         mpMapping->ClearCovGraph(MapId);
+    }
+
+    void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr &msgRGB, const sensor_msgs::ImageConstPtr &msgD)
+    {
+        // Copy the ros image message to cv::Mat.
+        cv_bridge::CvImageConstPtr cv_ptrRGB;
+        try
+        {
+            cv_ptrRGB = cv_bridge::toCvShare(msgRGB);
+        }
+        catch (cv_bridge::Exception &e)
+        {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
+
+        cv_bridge::CvImageConstPtr cv_ptrD;
+        try
+        {
+            cv_ptrD = cv_bridge::toCvShare(msgD);
+        }
+        catch (cv_bridge::Exception &e)
+        {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
+
+        mpSLAM->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
+    }
+
+    cv::Mat ClientHandler::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp)
+    {
+        {
+            unique_lock<mutex> lock(mMutexMode);
+            if (mbActivateLocalizationMode)
+            {
+                mpLocalMapper->RequestStop();
+
+                // Wait until Local Mapping has effectively stopped
+                while (!mpLocalMapper->isStopped())
+                {
+                    usleep(1000);
+                }
+
+                mpTracker->InformOnlyTracking(true);
+                mbActivateLocalizationMode = false;
+            }
+            if (mbDeactivateLocalizationMode)
+            {
+                mpTracker->InformOnlyTracking(false);
+                mpLocalMapper->Release();
+                mbDeactivateLocalizationMode = false;
+            }
+        }
+
+        // Check reset
+        {
+            unique_lock<mutex> lock(mMutexReset);
+            if (mbReset)
+            {
+                mpTracker->Reset();
+                mbReset = false;
+            }
+        }
+
+        cv::Mat Tcw = mpTracker->GrabImageRGBD(im, depthmap, timestamp);
+
+        unique_lock<mutex> lock2(mMutexState);
+        mTrackingState = mpTracker->mState;
+        mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+        return Tcw;
     }
 
     // #ifdef LOGGING

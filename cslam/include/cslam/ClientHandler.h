@@ -110,7 +110,7 @@ namespace cslam
                 void ClearCovGraph(size_t MapId);
 
                 //---Agent side---
-                void CamImgCb(const sensor_msgs::ImageConstPtr &pMsg);
+                void CamImgCb(const sensor_msgs::ImageConstPtr &pMsgRGB, const sensor_msgs::ImageConstPtr &pMsgD);
                 void Reset();
 
                 //---Map Save/Load---
@@ -121,6 +121,9 @@ namespace cslam
                 //    #ifdef LOGGING
                 //    void SetLogger(boost::shared_ptr<estd::mylog> pLogger);
                 //    #endif
+
+                // RGB-D mode
+                cv::Mat TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp);
 
         private:
 #ifdef LOGGING

@@ -90,10 +90,14 @@ namespace cslam
                  dbptr pKFDB, const string &strCamPath, size_t ClientId);
 
         // Preprocess the input and call Track(). Extract features and performs stereo matching.
-        cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
+        // cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
+        cv::Mat GrabImageRGBD(const cv::Mat &imRGB, const cv::Mat &imD, const double &timestamp);
 
         // Pointer Setters
-        void SetLocalMapper(mappingptr pLocalMapper) { mpLocalMapper = pLocalMapper; }
+        void SetLocalMapper(mappingptr pLocalMapper)
+        {
+            mpLocalMapper = pLocalMapper;
+        }
         void SetCommunicator(commptr pComm) { mpComm = pComm; }
 
         // Tracking states
@@ -140,8 +144,8 @@ namespace cslam
         void StereoInitialization();
 
         // Map initialization for monocular
-        void MonocularInitialization();
-        void CreateInitialMapMonocular();
+        // void MonocularInitialization();
+        // void CreateInitialMapMonocular();
 
         void CheckReplacedInLastFrame();
         bool TrackReferenceKeyFrame();
@@ -185,6 +189,15 @@ namespace cslam
         // Calibration matrix
         cv::Mat mK;
         cv::Mat mDistCoef;
+        float mbf;
+
+        // Threshold close/far points
+        // Points seen as close by the stereo/RGBD sensor are considered reliable
+        // and inserted from just one frame. Far points requiere a match in two keyframes.
+        float mThDepth;
+
+        // For RGB-D inputs only. For some datasets (e.g. TUM) the depthmap values are scaled.
+        float mDepthMapFactor;
 
         // Current matches in frame
         int mnMatchesInliers;

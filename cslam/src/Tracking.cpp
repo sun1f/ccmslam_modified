@@ -95,7 +95,7 @@ namespace cslam
         }
     }
 
-    cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
+    /* cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     {
         mImGray = im;
 
@@ -124,6 +124,36 @@ namespace cslam
         Track();
 
         return mCurrentFrame->mTcw.clone();
+    } */
+
+    cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB, const cv::Mat &imD, const double &timestamp)
+    {
+        mImGray = imRGB;
+        cv::Mat imDepth = imD;
+
+        if (mImGray.channels() == 3)
+        {
+            if (mbRGB)
+                cvtColor(mImGray, mImGray, CV_RGB2GRAY);
+            else
+                cvtColor(mImGray, mImGray, CV_BGR2GRAY);
+        }
+        else if (mImGray.channels() == 4)
+        {
+            if (mbRGB)
+                cvtColor(mImGray, mImGray, CV_RGBA2GRAY);
+            else
+                cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
+        }
+
+        if ((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F)
+            imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
+
+        // mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
+        mCurrentFrame.reset(new Frame(mImGray, imDepth, timestamp, mpORBextractor, mpORBVocabulary, mK, mDistCoef, mbf, mClientId));
+        Track();
+
+        return mCurrentFrame.mTcw.clone();
     }
 
     void Tracking::Track()
@@ -145,7 +175,7 @@ namespace cslam
 
         if (mState == NOT_INITIALIZED)
         {
-            MonocularInitialization();
+            StereoInitialization();
 
             if (params::vis::mbActive)
                 mpViewer->UpdateAndDrawFrame();
@@ -193,6 +223,7 @@ namespace cslam
             }
             else
             {
+                // ORB-SLAM2对应这个地方是重定位，CCM-SLAM弃用
                 cout << "\033[1;35m!!! +++ Tracking: Lost +++ !!!\033[0m" << endl;
                 bOK = false;
             }
@@ -300,32 +331,35 @@ namespace cslam
 
     void Tracking::StereoInitialization()
     {
-        if (mCurrentFrame.N > 500)
+        if (mCurrentFrame->N > 500)
         {
             // Set Frame pose to the origin
-            mCurrentFrame.SetPose(cv::Mat::eye(4, 4, CV_32F));
+            mCurrentFrame->SetPose(cv::Mat::eye(4, 4, CV_32F));
 
             // Create KeyFrame
-            KeyFrame *pKFini = new KeyFrame(mCurrentFrame, mpMap, mpKeyFrameDB);
+            // KeyFrame *pKFini = new KeyFrame(mCurrentFrame, mpMap, mpKeyFrameDB, Comm, eSystemState::CLIENT, -1);
+            kfptr pKFini{new KeyFrame(*mCurrentFrame, mpMap, mpKeyFrameDB, mpComm, eSystemState::CLIENT, -1)};
 
             // Insert KeyFrame in the map
             mpMap->AddKeyFrame(pKFini);
 
             // Create MapPoints and asscoiate to KeyFrame
-            for (int i = 0; i < mCurrentFrame.N; i++)
+            for (int i = 0; i < mCurrentFrame->N; i++)
             {
-                float z = mCurrentFrame.mvDepth[i];
+                float z = mCurrentFrame->mvDepth[i];
                 if (z > 0)
                 {
-                    cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
-                    MapPoint *pNewMP = new MapPoint(x3D, pKFini, mpMap);
+                    cv::Mat x3D = mCurrentFrame->UnprojectStereo(i);
+                    // MapPoint *pNewMP = new MapPoint(x3D, pKFini, mpMap);
+                    mpptr pNewMP{new MapPoint(x3D, pKFini, mpMap, mClientId, mpComm, eSystemState::CLIENT, -1)};
+
                     pNewMP->AddObservation(pKFini, i);
                     pKFini->AddMapPoint(pNewMP, i);
                     pNewMP->ComputeDistinctiveDescriptors();
                     pNewMP->UpdateNormalAndDepth();
                     mpMap->AddMapPoint(pNewMP);
 
-                    mCurrentFrame.mvpMapPoints[i] = pNewMP;
+                    mCurrentFrame->mvpMapPoints[i] = pNewMP;
                 }
             }
 
@@ -333,26 +367,28 @@ namespace cslam
 
             mpLocalMapper->InsertKeyFrame(pKFini);
 
-            mLastFrame = Frame(mCurrentFrame);
-            mnLastKeyFrameId = mCurrentFrame.mnId;
+            mLastFrame = Frame(*mCurrentFrame);
+            mLastKeyFrameId = mCurrentFrame->mnId;
             mpLastKeyFrame = pKFini;
 
             mvpLocalKeyFrames.push_back(pKFini);
             mvpLocalMapPoints = mpMap->GetAllMapPoints();
             mpReferenceKF = pKFini;
-            mCurrentFrame.mpReferenceKF = pKFini;
+            mCurrentFrame->mpReferenceKF = pKFini;
 
             mpMap->SetReferenceMapPoints(mvpLocalMapPoints);
 
             mpMap->mvpKeyFrameOrigins.push_back(pKFini);
 
-            mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+            // mpMapDrawer->SetCurrentCameraPose(mCurrentFrame->mTcw);
 
             mState = OK;
+
+            mpCC->UnLockTracking();
         }
     }
 
-    void Tracking::MonocularInitialization()
+    /* void Tracking::MonocularInitialization()
     {
         if (!mpInitializer)
         {
@@ -531,7 +567,7 @@ namespace cslam
         mState = OK;
 
         mpCC->UnLockTracking();
-    }
+    } */
 
     void Tracking::CheckReplacedInLastFrame()
     {
@@ -707,6 +743,9 @@ namespace cslam
                     mCurrentFrame->mvpMapPoints[i]->IncreaseFound();
                     mnMatchesInliers++;
                 }
+                /* ORB-SLAM2中如下，只针对STEREO模式，RGBD和MONOCULAR应该不需要这个
+                else if (mSensor == System::STEREO)
+                    mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint *>(NULL); */
             }
         }
 
@@ -746,6 +785,28 @@ namespace cslam
         // Local Mapping accept keyframes?
         bool bLocalMappingIdle = mpLocalMapper->AcceptKeyFrames();
 
+        // RGBD模式
+        // Check how many "close" points are being tracked and how many could be potentially created.
+        int nNonTrackedClose = 0;
+        int nTrackedClose = 0;
+        for (int i = 0; i < mCurrentFrame->N; i++)
+        {
+            if (mCurrentFrame->mvDepth[i] > 0 && mCurrentFrame->mvDepth[i] < mThDepth)
+            {
+                if (mCurrentFrame->mvpMapPoints[i] && !mCurrentFrame->mvbOutlier[i])
+                    nTrackedClose++;
+                else
+                    nNonTrackedClose++;
+            }
+        }
+
+        bool bNeedToInsertClose = (nTrackedClose < 100) && (nNonTrackedClose > 70);
+
+        // Thresholds
+        float thRefRatio = 0.75f;
+        if (nKFs < 2)
+            thRefRatio = 0.4f;
+
         // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
         const bool c1a = mCurrentFrame->mId.first >= mLastKeyFrameId.first + params::tracking::miMaxFrames;
         // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
@@ -763,8 +824,12 @@ namespace cslam
             }
             else
             {
+                // RGBD模式
                 mpLocalMapper->InterruptBA();
-                return false;
+                if (mpLocalMapper->KeyframesInQueue() < 3)
+                    return true;
+                else
+                    return false;
             }
         }
         else
@@ -777,6 +842,71 @@ namespace cslam
             return;
 
         kfptr pKF{new KeyFrame(*mCurrentFrame, mpMap, mpKeyFrameDB, mpComm, eSystemState::CLIENT, -1)};
+
+        // 这里开始是新移植的           2023.6.4 0:38, in BUAA, elliot
+        mpReferenceKF = pKF;
+        mCurrentFrame.mpReferenceKF = pKF;
+
+        mCurrentFrame->UpdatePoseMatrices();
+
+        // We sort points by the measured depth by the stereo/RGBD sensor.
+        // We create all those MapPoints whose depth < mThDepth.
+        // If there are less than 100 close points we create the 100 closest.
+        vector<pair<float, int>> vDepthIdx;
+        vDepthIdx.reserve(mCurrentFrame->N);
+        for (int i = 0; i < mCurrentFrame->N; i++)
+        {
+            float z = mCurrentFrame->mvDepth[i];
+            if (z > 0)
+            {
+                vDepthIdx.push_back(make_pair(z, i));
+            }
+        }
+
+        if (!vDepthIdx.empty())
+        {
+            sort(vDepthIdx.begin(), vDepthIdx.end());
+
+            int nPoints = 0;
+            for (size_t j = 0; j < vDepthIdx.size(); j++)
+            {
+                int i = vDepthIdx[j].second;
+
+                bool bCreateNew = false;
+
+                mpptr pMP = mCurrentFrame->mvpMapPoints[i];
+                if (!pMP)
+                    bCreateNew = true;
+                else if (pMP->Observations() < 1)
+                {
+                    bCreateNew = true;
+                    // mCurrentFrame->mvpMapPoints[i] = static_cast<MapPoint *>(NULL);
+                    mCurrentFrame->mvpMapPoints[i] = nullptr;
+                }
+
+                if (bCreateNew)
+                {
+                    cv::Mat x3D = mCurrentFrame->UnprojectStereo(i);
+                    mpptr pNewMP = new MapPoint(x3D, pKF, mpMap, mClientId, mpComm, eSystemState::CLIENT, -1); //
+                    pNewMP->AddObservation(pKF, i);
+                    pKF->AddMapPoint(pNewMP, i);
+                    pNewMP->ComputeDistinctiveDescriptors();
+                    pNewMP->UpdateNormalAndDepth();
+                    mpMap->AddMapPoint(pNewMP);
+
+                    mCurrentFrame->mvpMapPoints[i] = pNewMP;
+                    nPoints++;
+                }
+                else
+                {
+                    nPoints++;
+                }
+
+                if (vDepthIdx[j].first > mThDepth && nPoints > 100)
+                    break;
+            }
+        }
+        // 到这里结束
 
         std::vector<mpptr> vpM = pKF->GetMapPointMatches();
         for (vector<mpptr>::const_iterator vit = vpM.begin(); vit != vpM.end(); ++vit)
@@ -794,9 +924,6 @@ namespace cslam
                 pMPi->SetMultiUse();
             }
         }
-
-        mpReferenceKF = pKF;
-        mCurrentFrame->mpReferenceKF = pKF;
 
         mpLocalMapper->InsertKeyFrame(pKF);
 
