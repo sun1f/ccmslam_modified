@@ -62,9 +62,10 @@ namespace cslam
             message_filters::Subscriber<sensor_msgs::Image> depth_sub(mNh, TopicNameCamSub_D, 10);
             typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
             message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub);
-            sync.registerCallback(boost::bind(&ClientHandler::CamImgCb, this, _1));
+            sync.registerCallback(boost::bind(&ClientHandler::CamImgCb, this, _1, _2));
 
-            cout << "Camera Input topic: " << TopicNameCamSub << endl;
+            cout << "Camera Input topic: " << TopicNameCamSub_RGB << endl;
+            cout << "Camera Input topic: " << TopicNameCamSub_D << endl;
         }
     }
 #ifdef LOGGING
