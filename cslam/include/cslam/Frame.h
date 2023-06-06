@@ -45,7 +45,7 @@ namespace cslam
         Frame(const Frame &frame);
 
         // Constructor for Monocular cameras.
-        Frame(const cv::Mat &imGray, const double &timeStamp, extractorptr pExtractor, vocptr pVoc, cv::Mat &K, cv::Mat &distCoef, size_t ClientId);
+        // Frame(const cv::Mat &imGray, const double &timeStamp, extractorptr pExtractor, vocptr pVoc, cv::Mat &K, cv::Mat &distCoef, size_t ClientId);
 
         // Constructor for RGB-D cameras.
         Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, extractorptr pExtractor, vocptr pVoc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, size_t ClientId);
@@ -83,13 +83,6 @@ namespace cslam
 
         vector<size_t> GetFeaturesInArea(const float &x, const float &y, const float &r, const int minLevel = -1, const int maxLevel = -1) const;
 
-        // Search a match for each keypoint in the left image to a keypoint in the right image.
-        // If there is a match, depth is computed and the right coordinate associated to the left keypoint is stored.
-        void ComputeStereoMatches();
-
-        // Associate a "right" coordinate to a keypoint if there is valid depth in the depthmap.
-        void ComputeStereoFromRGBD(const cv::Mat &imDepth);
-
         // Backprojects a keypoint (if stereo/depth info available) into 3D world coordinates.
         cv::Mat UnprojectStereo(const int &i);
 
@@ -97,7 +90,7 @@ namespace cslam
         // Vocabulary used for relocalization.
         vocptr mpORBvocabulary;
 
-        // Feature extractor. The right is used only in the stereo case.
+        // Feature extractor. The right is used only in the stereo case(ORB-SLAM2), RGB-D case only use one extractor.
         extractorptr mpORBextractor;
 
         // Frame timestamp.
@@ -112,6 +105,16 @@ namespace cslam
         static float invfx;
         static float invfy;
         cv::Mat mDistCoef;
+
+        // Stereo baseline multiplied by fx.
+        float mbf;
+
+        // Stereo baseline in meters.
+        float mb;
+
+        // Threshold close/far points. Close points are inserted from 1 view.
+        // Far points are inserted as in the monocular case from 2 views.
+        float mThDepth;
 
         // Number of KeyPoints.
         int N;

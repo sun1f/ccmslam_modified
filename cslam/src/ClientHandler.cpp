@@ -26,16 +26,6 @@
 
 namespace cslam
 {
-    class ImageGrabber
-    {
-    public:
-        ImageGrabber(ClientSystem *pSLAM) : mpSLAM(pSLAM) {}
-
-        void GrabRGBD(const sensor_msgs::ImageConstPtr &msgRGB, const sensor_msgs::ImageConstPtr &msgD);
-
-        ClientSystem *mpSLAM;
-    };
-
     ClientHandler::ClientHandler(ros::NodeHandle Nh, ros::NodeHandle NhPrivate, vocptr pVoc, dbptr pDB, mapptr pMap, size_t ClientId, uidptr pUID, eSystemState SysState, const string &strCamFile, viewptr pViewer, bool bLoadMap)
         : mpVoc(pVoc), mpKFDB(pDB), mpMap(pMap),
           mNh(Nh), mNhPrivate(NhPrivate),
@@ -58,6 +48,7 @@ namespace cslam
         if (mSysState == eSystemState::CLIENT)
         {
             std::string TopicNameCamSub_RGB;
+            std::string TopicNameCamSub_D;
 
             mNhPrivate.param("TopicNameCamSub_RGB", TopicNameCamSub_RGB, string("nospec"));
             mNhPrivate.param("TopicNameCamSub_D", TopicNameCamSub_D, string("nospec"));
@@ -71,7 +62,7 @@ namespace cslam
             message_filters::Subscriber<sensor_msgs::Image> depth_sub(mNh, TopicNameCamSub_D, 10);
             typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
             message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub);
-            sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD, &igb, _1, _2));
+            sync.registerCallback(boost::bind(&ClientHandler::CamImgCb, this, _1));
 
             cout << "Camera Input topic: " << TopicNameCamSub << endl;
         }
@@ -403,78 +394,6 @@ namespace cslam
     void ClientHandler::ClearCovGraph(size_t MapId)
     {
         mpMapping->ClearCovGraph(MapId);
-    }
-
-    void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr &msgRGB, const sensor_msgs::ImageConstPtr &msgD)
-    {
-        // Copy the ros image message to cv::Mat.
-        cv_bridge::CvImageConstPtr cv_ptrRGB;
-        try
-        {
-            cv_ptrRGB = cv_bridge::toCvShare(msgRGB);
-        }
-        catch (cv_bridge::Exception &e)
-        {
-            ROS_ERROR("cv_bridge exception: %s", e.what());
-            return;
-        }
-
-        cv_bridge::CvImageConstPtr cv_ptrD;
-        try
-        {
-            cv_ptrD = cv_bridge::toCvShare(msgD);
-        }
-        catch (cv_bridge::Exception &e)
-        {
-            ROS_ERROR("cv_bridge exception: %s", e.what());
-            return;
-        }
-
-        mpSLAM->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
-    }
-
-    cv::Mat ClientHandler::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp)
-    {
-        {
-            unique_lock<mutex> lock(mMutexMode);
-            if (mbActivateLocalizationMode)
-            {
-                mpLocalMapper->RequestStop();
-
-                // Wait until Local Mapping has effectively stopped
-                while (!mpLocalMapper->isStopped())
-                {
-                    usleep(1000);
-                }
-
-                mpTracker->InformOnlyTracking(true);
-                mbActivateLocalizationMode = false;
-            }
-            if (mbDeactivateLocalizationMode)
-            {
-                mpTracker->InformOnlyTracking(false);
-                mpLocalMapper->Release();
-                mbDeactivateLocalizationMode = false;
-            }
-        }
-
-        // Check reset
-        {
-            unique_lock<mutex> lock(mMutexReset);
-            if (mbReset)
-            {
-                mpTracker->Reset();
-                mbReset = false;
-            }
-        }
-
-        cv::Mat Tcw = mpTracker->GrabImageRGBD(im, depthmap, timestamp);
-
-        unique_lock<mutex> lock2(mMutexState);
-        mTrackingState = mpTracker->mState;
-        mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
-        return Tcw;
     }
 
     // #ifdef LOGGING

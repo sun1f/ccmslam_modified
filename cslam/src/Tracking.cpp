@@ -57,6 +57,8 @@ namespace cslam
         }
         DistCoef.copyTo(mDistCoef);
 
+        mbf = fSettings["Camera.bf"];
+
         float fps = fSettings["Camera.fps"];
         if (fps == 0)
             fps = 30;
@@ -71,7 +73,15 @@ namespace cslam
         const int iMinThFAST = params::extractor::miNumThFAST;
 
         mpORBextractor.reset(new ORBextractor(nFeatures, fScaleFactor, nLevels, iIniThFAST, iMinThFAST));
-        mpIniORBextractor.reset(new ORBextractor(2 * nFeatures, fScaleFactor, nLevels, iIniThFAST, iMinThFAST));
+
+        // RGB-D
+        mThDepth = mbf * (float)fSettings["ThDepth"] / fx;
+        mDepthMapFactor = fSettings["DepthMapFactor"];
+        if (fabs(mDepthMapFactor) < 1e-5)
+            mDepthMapFactor = 1;
+        else
+            mDepthMapFactor = 1.0f / mDepthMapFactor;
+
         if (!mpMap || !mpORBVocabulary || !mpKeyFrameDB || !mpCC)
         {
             cout << "\033[1;31m!!!!! ERROR !!!!!\033[0m " << __func__ << ": nullptr given" << endl;
@@ -150,10 +160,10 @@ namespace cslam
             imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
 
         // mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
-        mCurrentFrame.reset(new Frame(mImGray, imDepth, timestamp, mpORBextractor, mpORBVocabulary, mK, mDistCoef, mbf, mClientId));
+        mCurrentFrame.reset(new Frame(mImGray, imDepth, timestamp, mpORBextractor, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth, mClientId));
         Track();
 
-        return mCurrentFrame.mTcw.clone();
+        return mCurrentFrame->mTcw.clone();
     }
 
     void Tracking::Track()
@@ -367,8 +377,8 @@ namespace cslam
 
             mpLocalMapper->InsertKeyFrame(pKFini);
 
-            mLastFrame = Frame(*mCurrentFrame);
-            mLastKeyFrameId = mCurrentFrame->mnId;
+            mLastFrame.reset(new Frame(*mCurrentFrame));
+            mLastKeyFrameId = mCurrentFrame->mId;
             mpLastKeyFrame = pKFini;
 
             mvpLocalKeyFrames.push_back(pKFini);
@@ -845,7 +855,7 @@ namespace cslam
 
         // 这里开始是新移植的           2023.6.4 0:38, in BUAA, elliot
         mpReferenceKF = pKF;
-        mCurrentFrame.mpReferenceKF = pKF;
+        mCurrentFrame->mpReferenceKF = pKF;
 
         mCurrentFrame->UpdatePoseMatrices();
 
@@ -887,7 +897,7 @@ namespace cslam
                 if (bCreateNew)
                 {
                     cv::Mat x3D = mCurrentFrame->UnprojectStereo(i);
-                    mpptr pNewMP = new MapPoint(x3D, pKF, mpMap, mClientId, mpComm, eSystemState::CLIENT, -1); //
+                    mpptr pNewMP{new MapPoint(x3D, pKF, mpMap, mClientId, mpComm, eSystemState::CLIENT, -1)};
                     pNewMP->AddObservation(pKF, i);
                     pKF->AddMapPoint(pNewMP, i);
                     pNewMP->ComputeDistinctiveDescriptors();

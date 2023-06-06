@@ -12,6 +12,9 @@
 // ROS
 #include "sensor_msgs/CompressedImage.h"
 #include <image_transport/image_transport.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 //...
 
@@ -98,9 +101,6 @@ namespace cslam
                 //    void SetLogger(boost::shared_ptr<estd::mylog> pLogger);
                 //    #endif
 
-                // RGB-D mode
-                cv::Mat TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp);
-
         private:
 #ifdef LOGGING
                 void InitializeCC(boost::shared_ptr<estd::mylog> pLogger);
@@ -134,9 +134,6 @@ namespace cslam
 
                 image_transport::ImageTransport mit;
                 image_transport::Subscriber mitSub;
-
-                /* boost::shared_ptr<image_transport::ImageTransport> mpIT;
-                boost::shared_ptr<image_transport::Subscriber> mpSUB; */
 
                 // threads
                 threadptr mptMapping;
