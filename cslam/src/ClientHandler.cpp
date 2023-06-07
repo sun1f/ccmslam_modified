@@ -199,6 +199,8 @@ namespace cslam
         mptComm.reset(new thread(&Communicator::RunClient, mpComm));
         mptViewer.reset(new thread(&Viewer::RunClient, mpViewer));
         usleep(10000);
+
+        cout << "Client " << mClientId << " --> Initialize Threads finished" << endl;
     }
 
     void ClientHandler::InitializeServer(bool bLoadMap)
@@ -294,23 +296,23 @@ namespace cslam
     {
         // Copy the ros image message to cv::Mat.
         // cv_bridge::CvImageConstPtr cv_ptr;
-        cv_bridge::CvImagePtr cv_ptrRGB;
+        cv_bridge::CvImageConstPtr cv_ptrRGB;
 
         try
         {
-            cv_ptrRGB = cv_bridge::toCvCopy(pMsgRGB, sensor_msgs::image_encodings::BGR8);
-            // cv_ptr = cv_bridge::toCvShare(pMsg);
+            // cv_ptrRGB = cv_bridge::toCvCopy(pMsgRGB, sensor_msgs::image_encodings::BGR8);
+            cv_ptrRGB = cv_bridge::toCvShare(pMsgRGB);
         }
         catch (cv_bridge::Exception &e)
         {
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return;
         }
-        cv_bridge::CvImagePtr cv_ptrD;
+        cv_bridge::CvImageConstPtr cv_ptrD;
         try
         {
-            cv_ptrD = cv_bridge::toCvCopy(pMsgD);
-            // cv_ptr = cv_bridge::toCvShare(pMsg);
+            // cv_ptrD = cv_bridge::toCvCopy(pMsgD);
+            cv_ptrD = cv_bridge::toCvShare(pMsgD);
         }
         catch (cv_bridge::Exception &e)
         {
