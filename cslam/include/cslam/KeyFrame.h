@@ -1,13 +1,13 @@
 #ifndef CSLAM_KEYFRAME_H_
 #define CSLAM_KEYFRAME_H_
 
-//C++
+// C++
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <opencv2/opencv.hpp>
 #include <mutex>
 
-//CSLAM
+// CSLAM
 #include <cslam/config.h>
 #include <cslam/estd.h>
 #include <cslam/Datatypes.h>
@@ -19,17 +19,17 @@
 #include <cslam/Communicator.h>
 #include <cslam/Frame.h>
 
-//Thirdparty
+// Thirdparty
 #include <thirdparty/DBoW2/DBoW2/BowVector.h>
 #include <thirdparty/DBoW2/DBoW2/FeatureVector.h>
 #include "thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
-//Msgs
+// Msgs
 #include <ccmslam_msgs/KF.h>
 #include <ccmslam_msgs/KFred.h>
 #include <ccmslam_msgs/Map.h>
 
-//SERIALIZATION
+// SERIALIZATION
 #include "../../thirdparty/cereal/cereal.hpp"
 #include "../../thirdparty/cereal/types/memory.hpp"
 #include "../../thirdparty/cereal/types/utility.hpp"
@@ -44,369 +44,426 @@
 using namespace std;
 using namespace estd;
 
-namespace cslam{
-
-//forward decs
-class Communicator;
-class Frame;
-class MapPoint;
-class Map;
-class KeyFrameDatabase;
-//------------
-
-class KeyFrame : public boost::enable_shared_from_this<KeyFrame>
+namespace cslam
 {
-public:
-    typedef boost::shared_ptr<KeyFrame> kfptr;
-    typedef boost::shared_ptr<MapPoint> mpptr;
-    typedef boost::shared_ptr<Map> mapptr;
-    typedef boost::shared_ptr<KeyFrameDatabase> dbptr;
-    typedef boost::shared_ptr<Communicator> commptr;
-    typedef boost::shared_ptr<CentralControl> ccptr;
-public:
-    //---constructor---
-    KeyFrame(Frame &F, mapptr pMap, dbptr pKFDB, commptr pComm, eSystemState SysState, size_t UniqueId);
-    KeyFrame(ccmslam_msgs::KF* pMsg, vocptr pVoc, mapptr pMap, dbptr pKFDB, commptr pComm, eSystemState SysState,
-                       size_t UniqueId = defid, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3()); //constructor for message input
-    KeyFrame(vocptr pVoc, mapptr pMap, dbptr pKFDB, commptr pComm, eSystemState SysState, size_t UniqueId); // constructor for save/load
 
-    void EstablishInitialConnectionsServer(); //this is necessary, because we cannot use shared_from_this() in constructor
-    void EstablishInitialConnectionsClient(); //this is necessary, because we cannot use shared_from_this() in constructor
+    // forward decs
+    class Communicator;
+    class Frame;
+    class MapPoint;
+    class Map;
+    class KeyFrameDatabase;
+    //------------
 
-    //---communication---
-    void ReduceMessage(ccmslam_msgs::KF *pMsgFull, ccmslam_msgs::KFred *pMsgRed);
-    void ConvertToMessage(ccmslam_msgs::Map &msgMap, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3(), kfptr pRefKf = nullptr, bool bForceUpdateMsg = false);
-    void UpdateFromMessage(ccmslam_msgs::KF *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3());
-    void UpdateFromMessage(ccmslam_msgs::KFred *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3());
-    void WriteMembersFromMessage(ccmslam_msgs::KF *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap);
-    bool SetPoseFromMessage(ccmslam_msgs::KF *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap);
-    bool SetPoseFromMessage(ccmslam_msgs::KFred *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap);
+    class KeyFrame : public boost::enable_shared_from_this<KeyFrame>
+    {
+    public:
+        typedef boost::shared_ptr<KeyFrame> kfptr;
+        typedef boost::shared_ptr<MapPoint> mpptr;
+        typedef boost::shared_ptr<Map> mapptr;
+        typedef boost::shared_ptr<KeyFrameDatabase> dbptr;
+        typedef boost::shared_ptr<Communicator> commptr;
+        typedef boost::shared_ptr<CentralControl> ccptr;
 
-    void SendMe();
-    void MarkInOutBuffer() {unique_lock<mutex> lock(mMutexOut); mbInOutBuffer = true;}
-    void UnMarkInOutBuffer() {unique_lock<mutex> lock(mMutexOut); mbInOutBuffer = false;}
-    bool IsInOutBuffer() {unique_lock<mutex> lock(mMutexOut); return mbInOutBuffer;}
-    void AddInformedClient(size_t ClientId){unique_lock<mutex> lock(mMutexOut); msuSentToClient.insert(ClientId);}
-    bool SentToClient(size_t ClientId){unique_lock<mutex> lock(mMutexOut); return msuSentToClient.count(ClientId);}
-    void Ack(){unique_lock<mutex> lock(mMutexOut); mbAck = true;}
-    bool AckSet(){unique_lock<mutex> lock(mMutexOut); return mbAck;}
-    bool IsSent(){unique_lock<mutex> lock(mMutexOut); return mbSentOnce;}
-    void SetSendFull();
-    bool CanBeForgotten();
+    public:
+        //---constructor---
+        KeyFrame(Frame &F, mapptr pMap, dbptr pKFDB, commptr pComm, eSystemState SysState, size_t UniqueId);
+        KeyFrame(ccmslam_msgs::KF *pMsg, vocptr pVoc, mapptr pMap, dbptr pKFDB, commptr pComm, eSystemState SysState,
+                 size_t UniqueId = defid, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3());                    // constructor for message input
+        KeyFrame(vocptr pVoc, mapptr pMap, dbptr pKFDB, commptr pComm, eSystemState SysState, size_t UniqueId); // constructor for save/load
 
-    //---set/get pointers---
-    void ReplaceMap(mapptr pNewMap);
-    mapptr GetMapptr() {return mpMap;}
-    void AddCommPtr(commptr pComm){unique_lock<mutex> lockMap(mMutexOut); mspComm.insert(pComm);}
-    set<commptr> GetCommPtrs(){unique_lock<mutex> lockMap(mMutexOut); return mspComm;}
+        void EstablishInitialConnectionsServer(); // this is necessary, because we cannot use shared_from_this() in constructor
+        void EstablishInitialConnectionsClient(); // this is necessary, because we cannot use shared_from_this() in constructor
 
-    //---visualization---
-    bool mbFromServer;
-    bool mbUpdatedByServer;
-    std::string GetId();
+        //---communication---
+        void ReduceMessage(ccmslam_msgs::KF *pMsgFull, ccmslam_msgs::KFred *pMsgRed);
+        void ConvertToMessage(ccmslam_msgs::Map &msgMap, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3(), kfptr pRefKf = nullptr, bool bForceUpdateMsg = false);
+        void UpdateFromMessage(ccmslam_msgs::KF *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3());
+        void UpdateFromMessage(ccmslam_msgs::KFred *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap = g2o::Sim3());
+        void WriteMembersFromMessage(ccmslam_msgs::KF *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap);
+        bool SetPoseFromMessage(ccmslam_msgs::KF *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap);
+        bool SetPoseFromMessage(ccmslam_msgs::KFred *pMsg, g2o::Sim3 mg2oS_wcurmap_wclientmap);
 
-    // Pose functions
-    void SetPose(const cv::Mat &Tcw, bool bLock, bool bIgnorePoseMutex = false);
-    void SetPoseFromTcp(const cv::Mat &Tcp_, bool bLock, kfptr pParent);
-    cv::Mat GetPose();
-    cv::Mat GetPoseInverse();
-    cv::Mat GetCameraCenter();
-    cv::Mat GetStereoCenter();
-    cv::Mat GetRotation();
-    cv::Mat GetTranslation();
-    cv::Mat GetTcp();
-    bool IsPoseLocked(){unique_lock<mutex> lock(mMutexPose); return mbPoseLock;}
+        void SendMe();
+        void MarkInOutBuffer()
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            mbInOutBuffer = true;
+        }
+        void UnMarkInOutBuffer()
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            mbInOutBuffer = false;
+        }
+        bool IsInOutBuffer()
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            return mbInOutBuffer;
+        }
+        void AddInformedClient(size_t ClientId)
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            msuSentToClient.insert(ClientId);
+        }
+        bool SentToClient(size_t ClientId)
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            return msuSentToClient.count(ClientId);
+        }
+        void Ack()
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            mbAck = true;
+        }
+        bool AckSet()
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            return mbAck;
+        }
+        bool IsSent()
+        {
+            unique_lock<mutex> lock(mMutexOut);
+            return mbSentOnce;
+        }
+        void SetSendFull();
+        bool CanBeForgotten();
 
-    // Bag of Words Representation
-    void ComputeBoW();
+        //---set/get pointers---
+        void ReplaceMap(mapptr pNewMap);
+        mapptr GetMapptr() { return mpMap; }
+        void AddCommPtr(commptr pComm)
+        {
+            unique_lock<mutex> lockMap(mMutexOut);
+            mspComm.insert(pComm);
+        }
+        set<commptr> GetCommPtrs()
+        {
+            unique_lock<mutex> lockMap(mMutexOut);
+            return mspComm;
+        }
 
-    // Covisibility graph functions
-    void AddConnection(kfptr pKF, const int &weight);
-    void EraseConnection(kfptr pKF);
-    void UpdateConnections(bool bIgnoreMutex = false); //if called from map, we need IgnoreMutes=true if we then want to get get a KF from the map
-    void UpdateBestCovisibles();
-    std::set<kfptr> GetConnectedKeyFrames();
-    std::vector<kfptr > GetVectorCovisibleKeyFrames();
-    std::vector<kfptr> GetBestCovisibilityKeyFrames(const int &N);
-    std::vector<kfptr> GetCovisiblesByWeight(const int &w);
-    int GetWeight(kfptr pKF);
+        //---visualization---
+        bool mbFromServer;
+        bool mbUpdatedByServer;
+        std::string GetId();
 
-    // Spanning tree functions
-    void AddChild(kfptr pKF);
-    void EraseChild(kfptr pKF, bool bIgnoreMutex = false);
-    void ChangeParent(kfptr pKF);
-    std::set<kfptr> GetChilds();
-    kfptr GetParent(bool bIgnorePoseMutex = false);
-    bool hasChild(kfptr pKF);
+        // Pose functions
+        void SetPose(const cv::Mat &Tcw, bool bLock, bool bIgnorePoseMutex = false);
+        void SetPoseFromTcp(const cv::Mat &Tcp_, bool bLock, kfptr pParent);
+        cv::Mat GetPose();
+        cv::Mat GetPoseInverse();
+        cv::Mat GetCameraCenter();
+        cv::Mat GetStereoCenter();
+        cv::Mat GetRotation();
+        cv::Mat GetTranslation();
+        cv::Mat GetTcp();
+        bool IsPoseLocked()
+        {
+            unique_lock<mutex> lock(mMutexPose);
+            return mbPoseLock;
+        }
 
-    // Loop Edges
-    void AddLoopEdge(kfptr pKF);
-    std::set<kfptr> GetLoopEdges();
+        // Bag of Words Representation
+        void ComputeBoW();
 
-    // MapPoint observation functions
-    void AddMapPoint(mpptr pMP, const size_t &idx, bool bLock = false);
-    void EraseMapPointMatch(const size_t &idx, bool bLock = false);
-    void EraseMapPointMatch(mpptr pMP, bool bLock = false);
-    void ReplaceMapPointMatch(const size_t &idx, mpptr pMP, bool bLock = false, bool bOverrideLock = false);
-    std::set<mpptr> GetMapPoints();
-    std::vector<mpptr> GetMapPointMatches();
-    int TrackedMapPoints(const int &minObs);
-    mpptr GetMapPoint(const size_t &idx);
-    bool IsMpLocked(const size_t &idx);
-    void RemapMapPointMatch(mpptr pMP, const size_t &idx_now, const size_t &idx_new);
+        // Covisibility graph functions
+        void AddConnection(kfptr pKF, const int &weight);
+        void EraseConnection(kfptr pKF);
+        void UpdateConnections(bool bIgnoreMutex = false); // if called from map, we need IgnoreMutes=true if we then want to get get a KF from the map
+        void UpdateBestCovisibles();
+        std::set<kfptr> GetConnectedKeyFrames();
+        std::vector<kfptr> GetVectorCovisibleKeyFrames();
+        std::vector<kfptr> GetBestCovisibilityKeyFrames(const int &N);
+        std::vector<kfptr> GetCovisiblesByWeight(const int &w);
+        int GetWeight(kfptr pKF);
 
-    // KeyPoint functions
-    std::vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
+        // Spanning tree functions
+        void AddChild(kfptr pKF);
+        void EraseChild(kfptr pKF, bool bIgnoreMutex = false);
+        void ChangeParent(kfptr pKF);
+        std::set<kfptr> GetChilds();
+        kfptr GetParent(bool bIgnorePoseMutex = false);
+        bool hasChild(kfptr pKF);
 
-    // Image
-    bool IsInImage(const float &x, const float &y) const;
+        // Loop Edges
+        void AddLoopEdge(kfptr pKF);
+        std::set<kfptr> GetLoopEdges();
 
-    // Enable/Disable bad flag changes
-    void SetNotErase();
-    void SetErase();
+        // MapPoint observation functions
+        void AddMapPoint(mpptr pMP, const size_t &idx, bool bLock = false);
+        void EraseMapPointMatch(const size_t &idx, bool bLock = false);
+        void EraseMapPointMatch(mpptr pMP, bool bLock = false);
+        void ReplaceMapPointMatch(const size_t &idx, mpptr pMP, bool bLock = false, bool bOverrideLock = false);
+        std::set<mpptr> GetMapPoints();
+        std::vector<mpptr> GetMapPointMatches();
+        int TrackedMapPoints(const int &minObs);
+        mpptr GetMapPoint(const size_t &idx);
+        bool IsMpLocked(const size_t &idx);
+        void RemapMapPointMatch(mpptr pMP, const size_t &idx_now, const size_t &idx_new);
 
-    // Set/check bad / empty flag
-    void SetBadFlag(bool bSuppressMapAction = false, bool bNoParent = false);
-    bool isBad() {unique_lock<mutex> lock(mMutexConnections); return mbBad;}
-    bool IsEmpty() {unique_lock<mutex> lock(mMutexConnections); return mbIsEmpty;}
-    bool mbOmitSending;
+        // KeyPoint functions
+        std::vector<size_t> GetFeaturesInArea(const float &x, const float &y, const float &r) const;
 
-    // Compute Scene Depth (q=2 median). Used in monocular.
-    float ComputeSceneMedianDepth(const int q);
+        // Image
+        bool IsInImage(const float &x, const float &y) const;
 
-    static bool weightComp( int a, int b){
-        return a>b;
-    }
+        // Enable/Disable bad flag changes
+        void SetNotErase();
+        void SetErase();
 
-    static bool compKFstamp(kfptr pKF1, kfptr pKF2) {
-      return  pKF1->mTimeStamp > pKF2->mTimeStamp;
-    }
+        // Set/check bad / empty flag
+        void SetBadFlag(bool bSuppressMapAction = false, bool bNoParent = false);
+        bool isBad()
+        {
+            unique_lock<mutex> lock(mMutexConnections);
+            return mbBad;
+        }
+        bool IsEmpty()
+        {
+            unique_lock<mutex> lock(mMutexConnections);
+            return mbIsEmpty;
+        }
+        bool mbOmitSending;
 
-    //---save/load
+        // Compute Scene Depth (q=2 median). Used in monocular.
+        float ComputeSceneMedianDepth(const int q);
 
-    friend class cereal::access;                                                                                                // Serialization
+        static bool weightComp(int a, int b)
+        {
+            return a > b;
+        }
 
-    template<class Archive>
-    void save(Archive &archive) const {
-        // pre-process data
-        this->SaveData();
-        // save
-        archive(mdServerTimestamp, mTimeStamp, mdInsertStamp,
-                mFrameId, mId,
-//                mUniqueId,
-                mVisId,
-                mnGridCols, mnGridRows, mfGridElementWidthInv, mfGridElementHeightInv,
-                fx, fy, cx, cy, invfx, invfy,
-                N,
-//                mvKeys, mvKeysUn,
-//                mKeysAsCvMat,
-                mKeysUnAsCvMat,
-                mDescriptors,
-                mTcp,
-                mnScaleLevels, mfScaleFactor, mfLogScaleFactor,
-                mvScaleFactors, mvLevelSigma2, mvInvLevelSigma2,
-                mnMinX, mnMinY, mnMaxX, mnMaxY, mK,
-                mT_SC,
-                mbSentOnce,
-                Tcw, Twc, Ow, mdPoseTime, Cw,
-                mmMapPoints_minimal,
-//                mParentId,
-                mHalfBaseline
-                );
-    }
+        static bool compKFstamp(kfptr pKF1, kfptr pKF2)
+        {
+            return pKF1->mTimeStamp > pKF2->mTimeStamp;
+        }
 
-    template<class Archive>
-    void load(Archive &archive) {
-        // pre-process data
-        mmMapPoints_minimal.clear();
-        mvLoopEdges_minimal.clear();
-        // load
-        archive(mdServerTimestamp, mTimeStamp, mdInsertStamp,
-                mFrameId, mId,
-//                mUniqueId,
-                mVisId,
-                mnGridCols, mnGridRows, mfGridElementWidthInv, mfGridElementHeightInv,
-                fx, fy, cx, cy, invfx, invfy,
-                N,
-//                mvKeys, mvKeysUn,
-//                mKeysAsCvMat,
-                mKeysUnAsCvMat,
-                mDescriptors,
-                mTcp,
-                mnScaleLevels, mfScaleFactor, mfLogScaleFactor,
-                mvScaleFactors, mvLevelSigma2, mvInvLevelSigma2,
-                mnMinX, mnMinY, mnMaxX, mnMaxY, mK,
-                mT_SC,
-                mbSentOnce,
-                Tcw, Twc, Ow, mdPoseTime, Cw,
-                mmMapPoints_minimal,
-//                mParentId,
-                mHalfBaseline
-                );
-    }
+        //---save/load
 
-    // The following variables are accesed from only 1 thread or never change (no mutex needed).
-public:
-    //---environment---
-    double mdServerTimestamp;
-    /*const*/ double mTimeStamp;
-    double mdInsertStamp;
+        friend class cereal::access; // Serialization
 
-    //---IDs---
-    static long unsigned int nNextId;
-    idpair mFrameId;
-    idpair mId;
-    size_t mUniqueId;
-    size_t mVisId;
+        template <class Archive>
+        void save(Archive &archive) const
+        {
+            // pre-process data
+            this->SaveData();
+            // save
+            archive(mdServerTimestamp, mTimeStamp, mdInsertStamp,
+                    mFrameId, mId,
+                    //                mUniqueId,
+                    mVisId,
+                    mnGridCols, mnGridRows, mfGridElementWidthInv, mfGridElementHeightInv,
+                    fx, fy, cx, cy, invfx, invfy,
+                    N,
+                    //                mvKeys, mvKeysUn,
+                    //                mKeysAsCvMat,
+                    mKeysUnAsCvMat,
+                    mDescriptors,
+                    mTcp,
+                    mnScaleLevels, mfScaleFactor, mfLogScaleFactor,
+                    mvScaleFactors, mvLevelSigma2, mvInvLevelSigma2,
+                    mnMinX, mnMinY, mnMaxX, mnMaxY, mK,
+                    mT_SC,
+                    mbSentOnce,
+                    Tcw, Twc, Ow, mdPoseTime, Cw,
+                    mmMapPoints_minimal,
+                    //                mParentId,
+                    mHalfBaseline);
+        }
 
-    // Grid (to speed up feature matching)
-    int mnGridCols;
-    int mnGridRows;
-    float mfGridElementWidthInv;
-    float mfGridElementHeightInv;
+        template <class Archive>
+        void load(Archive &archive)
+        {
+            // pre-process data
+            mmMapPoints_minimal.clear();
+            mvLoopEdges_minimal.clear();
+            // load
+            archive(mdServerTimestamp, mTimeStamp, mdInsertStamp,
+                    mFrameId, mId,
+                    //                mUniqueId,
+                    mVisId,
+                    mnGridCols, mnGridRows, mfGridElementWidthInv, mfGridElementHeightInv,
+                    fx, fy, cx, cy, invfx, invfy,
+                    N,
+                    //                mvKeys, mvKeysUn,
+                    //                mKeysAsCvMat,
+                    mKeysUnAsCvMat,
+                    mDescriptors,
+                    mTcp,
+                    mnScaleLevels, mfScaleFactor, mfLogScaleFactor,
+                    mvScaleFactors, mvLevelSigma2, mvInvLevelSigma2,
+                    mnMinX, mnMinY, mnMaxX, mnMaxY, mK,
+                    mT_SC,
+                    mbSentOnce,
+                    Tcw, Twc, Ow, mdPoseTime, Cw,
+                    mmMapPoints_minimal,
+                    //                mParentId,
+                    mHalfBaseline);
+        }
 
-    // Variables used by the tracking
-    idpair mTrackReferenceForFrame;
-    idpair mFuseTargetForKF;
+        // The following variables are accesed from only 1 thread or never change (no mutex needed).
+    public:
+        //---environment---
+        double mdServerTimestamp;
+        /*const*/ double mTimeStamp;
+        double mdInsertStamp;
 
-    // Variables used by the local mapping
-    idpair mBALocalForKF;
-    idpair mBAFixedForKF;
+        //---IDs---
+        static long unsigned int nNextId;
+        idpair mFrameId;
+        idpair mId;
+        size_t mUniqueId;
+        size_t mVisId;
 
-    // Variables used by the keyframe database
-    idpair mLoopQuery;
-    idpair mMatchQuery;
-    int mnLoopWords;
-    float mLoopScore;
-    idpair mRelocQuery;
-    int mnRelocWords;
-    float mRelocScore;
+        // Grid (to speed up feature matching)
+        int mnGridCols;
+        int mnGridRows;
+        float mfGridElementWidthInv;
+        float mfGridElementHeightInv;
 
-    // Variables used by loop closing
-    cv::Mat mTcwGBA;
-    cv::Mat mTcwBefGBA;
-    idpair mBAGlobalForKF;
-    bool mbLoopCorrected;
+        // Variables used by the tracking
+        idpair mTrackReferenceForFrame;
+        idpair mFuseTargetForKF;
 
-    // Variables used by map merging
-    idpair mCorrected_MM;
+        // Variables used by the local mapping
+        idpair mBALocalForKF;
+        idpair mBAFixedForKF;
 
-    // Calibration parameters
-    float fx, fy, cx, cy, invfx, invfy;
+        // Variables used by the keyframe database
+        idpair mLoopQuery;
+        idpair mMatchQuery;
+        int mnLoopWords;
+        float mLoopScore;
+        idpair mRelocQuery;
+        int mnRelocWords;
+        float mRelocScore;
 
-    // Number of KeyPoints
-    int N;
+        // Variables used by loop closing
+        cv::Mat mTcwGBA;
+        cv::Mat mTcwBefGBA;
+        idpair mBAGlobalForKF;
+        bool mbLoopCorrected;
 
-    // KeyPoints, stereo coordinate and descriptors (all associated by an index)
-    std::vector<cv::KeyPoint> mvKeys;
-    std::vector<cv::KeyPoint> mvKeysUn;
-    cv::Mat mDescriptors;
+        // Variables used by map merging
+        idpair mCorrected_MM;
 
-    //BoW
-    DBoW2::BowVector mBowVec;
-    DBoW2::FeatureVector mFeatVec;
+        // Calibration parameters
+        float fx, fy, cx, cy, invfx, invfy;
 
-    // Pose relative to parent (this is computed when bad flag is activated)
-    cv::Mat mTcp;
+        // Number of KeyPoints
+        int N;
 
-    // Scale
-    int mnScaleLevels;
-    float mfScaleFactor;
-    float mfLogScaleFactor;
-    std::vector<float> mvScaleFactors;
-    std::vector<float> mvLevelSigma2;
-    std::vector<float> mvInvLevelSigma2;
+        // KeyPoints, stereo coordinate and descriptors (all associated by an index)
+        std::vector<cv::KeyPoint> mvKeys;
+        std::vector<cv::KeyPoint> mvKeysUn;
+        cv::Mat mDescriptors;
 
-    // Image bounds and calibration
-    int mnMinX;
-    int mnMinY;
-    int mnMaxX;
-    int mnMaxY;
-    cv::Mat mK;
+        // BoW
+        DBoW2::BowVector mBowVec;
+        DBoW2::FeatureVector mFeatVec;
 
-    // Transformation to body frame (for KF write-out
-    Eigen::Matrix4d mT_SC;
+        // Pose relative to parent (this is computed when bad flag is activated)
+        cv::Mat mTcp;
 
-    //---save/load
-    mutable std::map<int, idpair> mmMapPoints_minimal;
-//    mutable idpair mParentId = defpair;
-    mutable vector<idpair> mvLoopEdges_minimal;
-//    mutable cv::Mat mKeysAsCvMat; // distorted Keys not used on server side
-    mutable cv::Mat mKeysUnAsCvMat;
-    void SaveData() const;
-    void ProcessAfterLoad(map<idpair, idpair> saved_kf_ids_to_sys_ids);
+        // Scale
+        int mnScaleLevels;
+        float mfScaleFactor;
+        float mfLogScaleFactor;
+        std::vector<float> mvScaleFactors;
+        std::vector<float> mvLevelSigma2;
+        std::vector<float> mvInvLevelSigma2;
 
-    // The following variables need to be accessed trough a mutex to be thread safe.
-protected:
-    //---communication---
-    bool mbInOutBuffer;
-    bool mbSentOnce;
-    bool mbSendFull;
-    set<size_t> msuSentToClient;
-    bool mbAck;
+        // Image bounds and calibration
+        int mnMinX;
+        int mnMinY;
+        int mnMaxX;
+        int mnMaxY;
+        cv::Mat mK;
 
+        // Transformation to body frame (for KF write-out
+        Eigen::Matrix4d mT_SC;
 
-    //---infrastructure---
-    mapptr mpMap;
-    set<commptr> mspComm;
-    eSystemState mSysState;
-    dbptr mpKeyFrameDB;
-    vocptr mpORBvocabulary;
+        //---save/load
+        mutable std::map<int, idpair> mmMapPoints_minimal;
+        //    mutable idpair mParentId = defpair;
+        mutable vector<idpair> mvLoopEdges_minimal;
+        //    mutable cv::Mat mKeysAsCvMat; // distorted Keys not used on server side
+        mutable cv::Mat mKeysUnAsCvMat;
+        void SaveData() const;
+        void ProcessAfterLoad(map<idpair, idpair> saved_kf_ids_to_sys_ids);
 
-    // SE3 Pose and camera center
-    cv::Mat Tcw;
-    cv::Mat Twc;
-    cv::Mat Ow;
-    bool mbPoseLock;
-    bool mbPoseChanged;
-    double mdPoseTime;
-    cv::Mat Cw;
+        // The following variables need to be accessed trough a mutex to be thread safe.
+    protected:
+        //---communication---
+        bool mbInOutBuffer;
+        bool mbSentOnce;
+        bool mbSendFull;
+        set<size_t> msuSentToClient;
+        bool mbAck;
 
-    // MapPoints associated to keypoints
-    std::vector<mpptr> mvpMapPoints;
-    std::vector<bool> mvbMapPointsLock;
+        //---infrastructure---
+        mapptr mpMap;
+        set<commptr> mspComm;
+        eSystemState mSysState;
+        dbptr mpKeyFrameDB;
+        vocptr mpORBvocabulary;
 
-    // Grid over the image to speed up feature matching
-    void AssignFeaturesToGrid();
-    bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
-    std::vector< std::vector <std::vector<size_t> > > mGrid;
+        // SE3 Pose and camera center
+        cv::Mat Tcw;
+        cv::Mat Twc;
+        cv::Mat Ow;
+        bool mbPoseLock;
+        bool mbPoseChanged;
+        double mdPoseTime;
+        cv::Mat Cw;
 
-    std::map<kfptr,int> mConnectedKeyFrameWeights;
-    std::vector<kfptr> mvpOrderedConnectedKeyFrames;
-    std::vector<int> mvOrderedWeights;
+        // MapPoints associated to keypoints
+        std::vector<mpptr> mvpMapPoints;
+        std::vector<bool> mvbMapPointsLock;
 
-    // Spanning Tree and Loop Edges
-    bool mbFirstConnection;
-    kfptr mpParent;
-    std::set<kfptr> mspChildrens;
-    std::set<kfptr> mspLoopEdges;
+        // Grid over the image to speed up feature matching
+        void AssignFeaturesToGrid();
+        bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
+        std::vector<std::vector<std::vector<size_t>>> mGrid;
 
-    // Bad flags
-    bool mbNotErase;
-    bool mbToBeErased;
-    bool mbBad;
-    bool mbIsEmpty;
+        std::map<kfptr, int> mConnectedKeyFrameWeights;
+        std::vector<kfptr> mvpOrderedConnectedKeyFrames;
+        std::vector<int> mvOrderedWeights;
 
-    float mHalfBaseline; // Only for visualization
+        // Spanning Tree and Loop Edges
+        bool mbFirstConnection;
+        kfptr mpParent;
+        std::set<kfptr> mspChildrens;
+        std::set<kfptr> mspLoopEdges;
 
-    //---mutexes---
-    std::mutex mMutexPose;
-    std::mutex mMutexConnections;
-    std::mutex mMutexFeatures;
-    std::mutex mMutexOut;
-    std::mutex mMapMutex;
-};
+        // Bad flags
+        bool mbNotErase;
+        bool mbToBeErased;
+        bool mbBad;
+        bool mbIsEmpty;
 
-} //end namespace
+        float mHalfBaseline; // Only for visualization
 
-namespace cereal {
+        //---mutexes---
+        std::mutex mMutexPose;
+        std::mutex mMutexConnections;
+        std::mutex mMutexFeatures;
+        std::mutex mMutexOut;
+        std::mutex mMapMutex;
+    };
 
-//save and load function for Eigen::Matrix type
+} // end namespace
+
+namespace cereal
+{
+
+    // save and load function for Eigen::Matrix type
 
     template <class Archive, class _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
     inline
-    typename std::enable_if<traits::is_output_serializable<BinaryData<_Scalar>, Archive>::value, void>::type
-    save(Archive& ar, const Eigen::Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>& matrix) {
+        typename std::enable_if<traits::is_output_serializable<BinaryData<_Scalar>, Archive>::value, void>::type
+        save(Archive &ar, const Eigen::Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> &matrix)
+    {
         const std::int32_t rows = static_cast<std::int32_t>(matrix.rows());
         const std::int32_t cols = static_cast<std::int32_t>(matrix.cols());
         ar(rows);
@@ -416,8 +473,9 @@ namespace cereal {
 
     template <class Archive, class _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
     inline
-    typename std::enable_if<traits::is_input_serializable<BinaryData<_Scalar>, Archive>::value, void>::type
-    load(Archive& ar, Eigen::Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>& matrix) {
+        typename std::enable_if<traits::is_input_serializable<BinaryData<_Scalar>, Archive>::value, void>::type
+        load(Archive &ar, Eigen::Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> &matrix)
+    {
         std::int32_t rows;
         std::int32_t cols;
         ar(rows);
@@ -428,10 +486,10 @@ namespace cereal {
         ar(binary_data(matrix.data(), static_cast<std::size_t>(rows * cols * sizeof(_Scalar))));
     }
 
-//save and load function for cv::Mat type
-    template<class Archive>
-    inline
-    void save(Archive& ar, const cv::Mat& mat) {
+    // save and load function for cv::Mat type
+    template <class Archive>
+    inline void save(Archive &ar, const cv::Mat &mat)
+    {
         int rows, cols, type;
         bool continuous;
 
@@ -440,41 +498,48 @@ namespace cereal {
         type = mat.type();
         continuous = mat.isContinuous();
 
-        ar & rows & cols & type & continuous;
+        ar &rows &cols &type &continuous;
 
-        if (continuous) {
+        if (continuous)
+        {
             const int data_size = rows * cols * static_cast<int>(mat.elemSize());
             auto mat_data = cereal::binary_data(mat.ptr(), data_size);
-            ar & mat_data;
+            ar &mat_data;
         }
-        else {
+        else
+        {
             const int row_size = cols * static_cast<int>(mat.elemSize());
-            for (int i = 0; i < rows; i++) {
+            for (int i = 0; i < rows; i++)
+            {
                 auto row_data = cereal::binary_data(mat.ptr(i), row_size);
-                ar & row_data;
+                ar &row_data;
             }
         }
     }
 
-    template<class Archive>
-    void load(Archive& ar, cv::Mat& mat) {
+    template <class Archive>
+    void load(Archive &ar, cv::Mat &mat)
+    {
         int rows, cols, type;
         bool continuous;
 
-        ar & rows & cols & type & continuous;
+        ar &rows &cols &type &continuous;
 
-        if (continuous) {
+        if (continuous)
+        {
             mat.create(rows, cols, type);
             const int data_size = rows * cols * static_cast<int>(mat.elemSize());
             auto mat_data = cereal::binary_data(mat.ptr(), data_size);
-            ar & mat_data;
+            ar &mat_data;
         }
-        else {
+        else
+        {
             mat.create(rows, cols, type);
             const int row_size = cols * static_cast<int>(mat.elemSize());
-            for (int i = 0; i < rows; i++) {
+            for (int i = 0; i < rows; i++)
+            {
                 auto row_data = cereal::binary_data(mat.ptr(i), row_size);
-                ar & row_data;
+                ar &row_data;
             }
         }
     }

@@ -39,19 +39,19 @@ namespace cslam
             mmpMaps[*(pMap0->msuAssClients.begin())] = pMap0;
         if (pMap1)
             mmpMaps[*(pMap1->msuAssClients.begin())] = pMap1;
-        if (pMap2)
+        /* if (pMap2)
             mmpMaps[*(pMap2->msuAssClients.begin())] = pMap2;
         if (pMap3)
-            mmpMaps[*(pMap3->msuAssClients.begin())] = pMap3;
+            mmpMaps[*(pMap3->msuAssClients.begin())] = pMap3; */
 
         if (pMap0)
             mspMaps.insert(pMap0);
         if (pMap1)
             mspMaps.insert(pMap1);
-        if (pMap2)
+       /*  if (pMap2)
             mspMaps.insert(pMap2);
         if (pMap3)
-            mspMaps.insert(pMap3);
+            mspMaps.insert(pMap3); */
 
         mPubMarker = mNh.advertise<visualization_msgs::Marker>("MapMatcherMarkers", 10);
 

@@ -83,6 +83,7 @@ namespace cslam
                 if (bDetect)
                 {
                     // Compute similarity transformation [sR|t]
+                    // In the stereo/RGBD case s = 1
                     bool bSim3 = ComputeSim3();
                     if (bSim3)
                     {
