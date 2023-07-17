@@ -30,7 +30,7 @@ namespace cslam
     LoopFinder::LoopFinder(ccptr pCC, dbptr pDB, vocptr pVoc, mapptr pMap)
         : mpCC(pCC), mpKFDB(pDB), mpVoc(pVoc), mpMap(pMap),
           mbResetRequested(false),
-          mbFixScale(false), mKFcount(0),
+          mbFixScale(true), mKFcount(0),
           mKFNewLoopThres(params::placerec::miNewLoopThres),
           mnCovisibilityConsistencyTh(params::placerec::miCovisibilityConsistencyTh)
     {

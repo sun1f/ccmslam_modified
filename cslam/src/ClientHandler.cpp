@@ -29,7 +29,7 @@ namespace cslam
     ClientHandler::ClientHandler(ros::NodeHandle Nh, ros::NodeHandle NhPrivate, vocptr pVoc, dbptr pDB, mapptr pMap, size_t ClientId, uidptr pUID, eSystemState SysState, const string &strCamFile, viewptr pViewer, bool bLoadMap)
         : mpVoc(pVoc), mpKFDB(pDB), mpMap(pMap),
           mNh(Nh), mNhPrivate(NhPrivate),
-          mit(Nh), // image_transport::ImageTransport没有默认无参构造函数，必须在初始化列表中将mit初始化
+          // mit(Nh), // image_transport::ImageTransport没有默认无参构造函数，必须在初始化列表中将mit初始化
           mClientId(ClientId), mpUID(pUID), mSysState(SysState),
           mstrCamFile(strCamFile),
           mpViewer(pViewer), mbReset(false),
@@ -62,7 +62,7 @@ namespace cslam
             message_filters::Subscriber<sensor_msgs::Image> depth_sub(mNh, TopicNameCamSub_D, 10);
             typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
             message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub);
-            sync.registerCallback(boost::bind(&ClientHandler::CamImgCb, this, _1, _2));
+            sync.registerCallback(boost::bind(&ClientHandler::CamImgCb, _1, _2));
 
             cout << "Camera Input topic: " << TopicNameCamSub_RGB << endl;
             cout << "Camera Input topic: " << TopicNameCamSub_D << endl;
@@ -291,8 +291,8 @@ namespace cslam
         mpMapping->SetMapMatcher(mpMapMatcher);
     }
 
-    // void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsg) 需要订阅压缩的图像话题
-    void ClientHandler::CamImgCb(const sensor_msgs::ImageConstPtr &pMsgRGB, const sensor_msgs::ImageConstPtr &pMsgD)
+    // void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsg)
+    void ClientHandler::CamImgCb(const sensor_msgs::ImageConstPtr pMsgRGB, const sensor_msgs::ImageConstPtr pMsgD)
     {
         // Copy the ros image message to cv::Mat.
         // cv_bridge::CvImageConstPtr cv_ptr;

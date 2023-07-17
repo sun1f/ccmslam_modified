@@ -114,7 +114,7 @@ private:
     // Variables related to Global Bundle Adjustment
     void RunGBA(idpair nLoopKF, set<idpair> sChangedKFs);
 
-    // Fix scale in the stereo/RGB-D case
+    // Fix scale in the stereo/RGB-D case, CCM之前是false
     bool mbFixScale;
 };
 

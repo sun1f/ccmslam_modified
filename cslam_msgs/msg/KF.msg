@@ -37,7 +37,7 @@ bool mbAck
 
     float32[16] mT_SC
 
-#Scale
+#Scale 金字塔缩放尺度，不是实际地图尺度
     int8 mnScaleLevels
     float32 mfScaleFactor
     float32 mfLogScaleFactor

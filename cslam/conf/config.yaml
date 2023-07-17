@@ -124,6 +124,7 @@ Opt.MatchesThres: 20
 Opt.InliersThres: 20
 Opt.TotalMatchesThres: 40
 Opt.Probability: 0.99
+# Opt.MinInliers👇 这个值ORB—SLAM2中是20
 Opt.MinInliers: 6
 Opt.MaxIterations: 300
 Opt.GBAIterations: 20
