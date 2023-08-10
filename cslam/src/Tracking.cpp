@@ -141,6 +141,7 @@ namespace cslam
     cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB, const cv::Mat &imD, const double &timestamp)
     {
         cout << "This is Grab image RGBD" << endl;
+
         mImGray = imRGB;
         cv::Mat imDepth = imD;
 
@@ -171,6 +172,7 @@ namespace cslam
 
     void Tracking::Track()
     {
+        cout << "Function Tracking::Track()" << endl;
         if (mState == NO_IMAGES_YET)
         {
             mState = NOT_INITIALIZED;

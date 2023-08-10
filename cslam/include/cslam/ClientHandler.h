@@ -89,7 +89,8 @@ namespace cslam
                 void ClearCovGraph(size_t MapId);
 
                 //---Agent side---
-                void CamImgCb(const sensor_msgs::ImageConstPtr pMsgRGB, const sensor_msgs::ImageConstPtr pMsgD);
+                void CamImgCb(sensor_msgs::ImageConstPtr pMsgRGB, sensor_msgs::ImageConstPtr pMsgD);
+                // void CamImgCb(const sensor_msgs::ImageConstPtr pMsgRGB);
                 void Reset();
 
                 //---Map Save/Load---

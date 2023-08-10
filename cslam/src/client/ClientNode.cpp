@@ -46,12 +46,14 @@ int main(int argc, char **argv)
 
     ROS_INFO("Started CSLAM client node...");
 
-    ros::Rate r(params::timings::client::miRosRate);
+    /* ros::Rate r(params::timings::client::miRosRate);
     while (ros::ok())
     {
         ros::spinOnce();
         r.sleep();
-    }
+    } */
+
+    // ros::spin();
 
     return 0;
 }

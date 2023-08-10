@@ -60,7 +60,7 @@ MESSAGE(STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 if(NOT ${ROS_VERSION_INDIGO})
-  find_package(OpenCV 3.2.0 REQUIRED)
+  find_package(OpenCV 4.2.0 REQUIRED)
 endif()
 
 find_package(catkin REQUIRED COMPONENTS

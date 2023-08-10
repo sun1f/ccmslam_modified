@@ -26,6 +26,53 @@
 
 namespace cslam
 {
+    /* void CamImgCb(sensor_msgs::ImageConstPtr pMsgRGB)
+    {
+        ROS_INFO("Yes, I've reveived the topic of image");
+    } */
+    void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsgRGB, sensor_msgs::ImageConstPtr pMsgD)
+    {
+        ROS_INFO("Yes, I've received image topic of rgb and depth");
+        // Copy the ros image message to cv::Mat.
+        // cv_bridge::CvImageConstPtr cv_ptr;
+
+        cv_bridge::CvImageConstPtr cv_ptrRGB;
+        try
+        {
+            // cv_ptrRGB = cv_bridge::toCvCopy(pMsgRGB, sensor_msgs::image_encodings::BGR8);
+            cv_ptrRGB = cv_bridge::toCvShare(pMsgRGB);
+        }
+        catch (cv_bridge::Exception &e)
+        {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
+
+        cv_bridge::CvImageConstPtr cv_ptrD;
+        try
+        {
+            // cv_ptrD = cv_bridge::toCvCopy(pMsgD);
+            cv_ptrD = cv_bridge::toCvShare(pMsgD);
+        }
+        catch (cv_bridge::Exception &e)
+        {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
+
+        // Check reset
+        {
+            unique_lock<mutex> lock(mMutexReset);
+            if (mbReset)
+            {
+                mpTracking->Reset();
+                mbReset = false;
+            }
+        }
+
+        mpTracking->GrabImageRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
+    }
+
     ClientHandler::ClientHandler(ros::NodeHandle Nh, ros::NodeHandle NhPrivate, vocptr pVoc, dbptr pDB, mapptr pMap, size_t ClientId, uidptr pUID, eSystemState SysState, const string &strCamFile, viewptr pViewer, bool bLoadMap)
         : mpVoc(pVoc), mpKFDB(pDB), mpMap(pMap),
           mNh(Nh), mNhPrivate(NhPrivate),
@@ -47,25 +94,26 @@ namespace cslam
 
         if (mSysState == eSystemState::CLIENT)
         {
+            /* std::string TopicNameCamSub;
+            mNhPrivate.param("TopicNameCamSub", TopicNameCamSub, string("nospec"));
+            mSubCam = mNh.subscribe<sensor_msgs::Image>(TopicNameCamSub, 10, boost::bind(&CamImgCb, _1)); */
+
             std::string TopicNameCamSub_RGB;
             std::string TopicNameCamSub_D;
 
             mNhPrivate.param("TopicNameCamSub_RGB", TopicNameCamSub_RGB, string("nospec"));
             mNhPrivate.param("TopicNameCamSub_D", TopicNameCamSub_D, string("nospec"));
 
-            // mitSub = mit.subscribe(TopicNameCamSub_RGB, 10, &ClientHandler::CamImgCb, this, image_transport::TransportHints("compressed")); // 使用了第二个版本的subscribe接口：成员函数 + 裸指针
-
-            // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, boost::bind(&ClientHandler::CamImgCb, this, _1));
-            // mSubCam = mNh.subscribe<sensor_msgs::CompressedImageConstPtr>(TopicNameCamSub, 10, ClientHandler::CamImgCb);
-
             message_filters::Subscriber<sensor_msgs::Image> rgb_sub(mNh, TopicNameCamSub_RGB, 10);
             message_filters::Subscriber<sensor_msgs::Image> depth_sub(mNh, TopicNameCamSub_D, 10);
             typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
             message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub);
-            sync.registerCallback(boost::bind(&ClientHandler::CamImgCb, _1, _2));
+            sync.registerCallback(boost::bind(&ClientHandler::CamImgCb, this, _1, _2));
 
             cout << "Camera Input topic: " << TopicNameCamSub_RGB << endl;
             cout << "Camera Input topic: " << TopicNameCamSub_D << endl;
+
+            ros::spin();
         }
     }
 #ifdef LOGGING
@@ -289,48 +337,6 @@ namespace cslam
         mpMapMatcher = pMatch;
         mpComm->SetMapMatcher(mpMapMatcher);
         mpMapping->SetMapMatcher(mpMapMatcher);
-    }
-
-    // void ClientHandler::CamImgCb(sensor_msgs::ImageConstPtr pMsg)
-    void ClientHandler::CamImgCb(const sensor_msgs::ImageConstPtr pMsgRGB, const sensor_msgs::ImageConstPtr pMsgD)
-    {
-        // Copy the ros image message to cv::Mat.
-        // cv_bridge::CvImageConstPtr cv_ptr;
-        cv_bridge::CvImageConstPtr cv_ptrRGB;
-
-        try
-        {
-            // cv_ptrRGB = cv_bridge::toCvCopy(pMsgRGB, sensor_msgs::image_encodings::BGR8);
-            cv_ptrRGB = cv_bridge::toCvShare(pMsgRGB);
-        }
-        catch (cv_bridge::Exception &e)
-        {
-            ROS_ERROR("cv_bridge exception: %s", e.what());
-            return;
-        }
-        cv_bridge::CvImageConstPtr cv_ptrD;
-        try
-        {
-            // cv_ptrD = cv_bridge::toCvCopy(pMsgD);
-            cv_ptrD = cv_bridge::toCvShare(pMsgD);
-        }
-        catch (cv_bridge::Exception &e)
-        {
-            ROS_ERROR("cv_bridge exception: %s", e.what());
-            return;
-        }
-
-        // Check reset
-        {
-            unique_lock<mutex> lock(mMutexReset);
-            if (mbReset)
-            {
-                mpTracking->Reset();
-                mbReset = false;
-            }
-        }
-
-        mpTracking->GrabImageRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
     }
 
     void ClientHandler::LoadMap(const std::string &path_name)

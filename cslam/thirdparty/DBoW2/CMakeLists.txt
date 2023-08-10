@@ -11,19 +11,19 @@ set(USE_THIRDPARTY_OPENCV3 0)
 set(USE_THIRDPARTY_OPENCV2 0)
 
 if(${USE_THIRDPARTY_OPENCV3} AND ${USE_THIRDPARTY_OPENCV2})
-  message( FATAL_ERROR "ill-defined external OpenCV dependencies." )
+  message(FATAL_ERROR "ill-defined external OpenCV dependencies.")
 endif()
 
 set(HDRS_DBOW2
   DBoW2/BowVector.h
-  DBoW2/FORB.h 
-  DBoW2/FClass.h       
+  DBoW2/FORB.h
+  DBoW2/FClass.h
   DBoW2/FeatureVector.h
-  DBoW2/ScoringObject.h   
+  DBoW2/ScoringObject.h
   DBoW2/TemplatedVocabulary.h)
 set(SRCS_DBOW2
   DBoW2/BowVector.cpp
-  DBoW2/FORB.cpp      
+  DBoW2/FORB.cpp
   DBoW2/FeatureVector.cpp
   DBoW2/ScoringObject.cpp)
 
@@ -35,15 +35,15 @@ set(SRCS_DUTILS
   DUtils/Timestamp.cpp)
 
 if(${USE_THIRDPARTY_OPENCV3})
-set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/../opencv-3.3.0/build)
-set(OpenCV_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../opencv-3.3.0/build/include)
-find_package(OpenCV 3.3.0 REQUIRED)
+  set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/../opencv-3.3.0/build)
+  set(OpenCV_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../opencv-3.3.0/build/include)
+  find_package(OpenCV 3.3.0 REQUIRED)
 elseif(${USE_THIRDPARTY_OPENCV2})
-set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/../opencv-2.4.13/build)
-set(OpenCV_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../opencv-2.4.13/build/include)
-find_package(OpenCV 2.4.13 REQUIRED)
+  set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/../opencv-2.4.13/build)
+  set(OpenCV_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../opencv-2.4.13/build/include)
+  find_package(OpenCV 2.4.13 REQUIRED)
 else()
-find_package(OpenCV REQUIRED)
+  find_package(OpenCV 4.2.0 REQUIRED)
 endif()
 
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
@@ -51,4 +51,3 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 include_directories(${OpenCV_INCLUDE_DIRS})
 add_library(DBoW2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
 target_link_libraries(DBoW2 ${OpenCV_LIBS})
-
